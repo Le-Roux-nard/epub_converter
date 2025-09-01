@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Index of /</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: monospace, 'Courier New', Courier;
+      background-color: #ffffff;
+      color: #333333;
+      padding: 20px;
+      line-height: 1.4;
+    }
+
+    h1 {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 10px;
+      font-size: xx-large;
+    }
+
+    table {
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 2px solid #ddd;
+      font-weight: bold;
+    }
+
+    td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .icon {
+      display: none;
+    }
+
+    a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    a:visited {
+      color: #551a8b;
+    }
+
+    .size {
+      text-align: left;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    .date {
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ccc;
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
+
+    .description {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 768px) {
+      .description {
+        display: none;
+      }
+
+      table {
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        padding: 6px 8px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Index of /{{ actual_dir }}</h1>
+
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Taille</th>
+        <th>Dernière modification</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <a href="/{{ previous_dir }}">Parent Directory</a>
+        </td>
+        <td class="size">-</td>
+        <td class="date">-</td>
+      </tr>
+      {% for file in files|sort(reverse=True,attribute='isDir, name') %}
+      <tr>
+        <td>
+          <a href="{{file['path']}}">
+            {{ file["name"] }}</a>
+        </td>
+        <td class="size">
+          {{ "-" if file["isDir"] == True else file["size"] }}
+        </td>
+        <td class="date">
+          {{ file["mdate"] }}
+        </td>
+      </tr>
+
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+
+</html>
