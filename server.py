@@ -65,7 +65,6 @@ def dir_listing(req_path):
     # Joining the base and the requested path
     EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
     abs_path = os.path.join(EPUB_ROOT_FOLDER, unquote(req_path))
-    print(abs_path)
 
     # Return 404 if path doesn't exist
     if not os.path.exists(abs_path):
@@ -151,7 +150,6 @@ def buildEpub():
         imageFileStream = imageFile.stream
         imageContent = imageFileStream.read()
         imageFileStream.close()
-        print(f"adding image {image.filename}")
         epubVolume.add_image(image.filename, imageContent)
     
     EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
@@ -160,7 +158,6 @@ def buildEpub():
     file_path = f"{file_location}/{metadata['title']}.epub"
 
     os.makedirs(file_location, exist_ok=True)
-    print(f"Saving epub file")
     epubVolume.save(filename=file_path)
 
     return "", 202
