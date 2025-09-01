@@ -16,7 +16,7 @@
 // @grant        GM.removeValues
 // ==/UserScript==
 
-const backupServerURL = "http://localhost:5000";
+const backupServerURL = "https://fuck-victorian-novel-house.lerouxnard.fr/";
 
 const lineBreakStyle = `
 <style>
