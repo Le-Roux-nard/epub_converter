@@ -339,9 +339,6 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 		//#region Chapitre
 		const chapterContentLocator = "#textContainer > .chapter-obf";
 
-		if(!!loadchapterButton){
-			loadchapterButton.click()
-		}
 		try {
 			await waitForElement(chapterContentLocator, 3_000);
 		}catch {
