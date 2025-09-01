@@ -19,9 +19,6 @@ from dotenv import load_dotenv
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
-EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER")
-PORT = os.environ.get("PORT")
-
 url_turbo_regex = r"^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$"
 image_data_url_regexp = re.compile(r"^data:(image/[\w.+-]+)?;base64,(.*)$", re.IGNORECASE | re.DOTALL)
 
@@ -66,7 +63,9 @@ def favicon():
 def dir_listing(req_path):
 
     # Joining the base and the requested path
+    EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
     abs_path = os.path.join(EPUB_ROOT_FOLDER, unquote(req_path))
+    print(abs_path)
 
     # Return 404 if path doesn't exist
     if not os.path.exists(abs_path):
@@ -155,6 +154,8 @@ def buildEpub():
         print(f"adding image {image.filename}")
         epubVolume.add_image(image.filename, imageContent)
     
+    EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
+
     file_location = f"{EPUB_ROOT_FOLDER}/{secure_filename(metadata['collections'][0]['name'])}/{secure_filename(metadata['volumeName'])}"
     file_path = f"{file_location}/{metadata['title']}.epub"
 
@@ -164,4 +165,5 @@ def buildEpub():
 
     return "", 202
 
-app.run(port=PORT if PORT is not None else 5000)
+PORT = os.environ.get("PORT", 5000) 
+app.run(port=PORT)

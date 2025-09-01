@@ -5,4 +5,4 @@ natsort
 flask
 flask-cors
 python-dotenv
-https://github.com/Le-Roux-nard/mkepub/archive/metadata_update.zip
+mkepub@git+https://github.com/Le-Roux-nard/mkepub@metadata_update
