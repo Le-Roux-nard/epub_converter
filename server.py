@@ -165,5 +165,7 @@ def buildEpub():
 
     return "", 202
 
-PORT = os.environ.get("PORT", 5000) 
-app.run(port=PORT)
+
+if __name__ == "__main__":
+    PORT = os.environ.get("PORT", 5000)
+    app.run(port=PORT)
