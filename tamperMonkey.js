@@ -59,7 +59,7 @@ const lineBreakStyle = `
 	max-width: 75%;
 	max-height: 80%;
 	object-fit: contain;
-	} 
+	}
 </style>
 `;
 
@@ -67,7 +67,7 @@ function wait(time) {
 	return new Promise((res) => setTimeout(res, time));
 }
 
-function waitForElement(selector, timeout=10_000) {
+function waitForElement(selector, timeout = 10_000) {
 	return new Promise((res, rej) => {
 		const observer = new MutationObserver((mutations, observer) => {
 			const element = document.querySelector(selector);
@@ -83,9 +83,9 @@ function waitForElement(selector, timeout=10_000) {
 		});
 
 		setTimeout(() => {
-			observer.disconnect()
-			rej()
-		}, timeout)
+			observer.disconnect();
+			rej();
+		}, timeout);
 	});
 }
 
@@ -178,21 +178,27 @@ async function getNovelMetadata() {
 	const coverElement = document.querySelector("section div img");
 	const coverDataURL = await getImageData(coverElement.src);
 
-	return {
-		author: authorSpan.innerText.split(":").at(-1).trim(),
-		collection: {
-			id: window.location.pathname.split("/").at(-1),
-			name: novelTitleNode.innerText,
+	return (
+		{
+			author: authorSpan.innerText.split(":").at(-1).trim(),
+			collection: {
+				id: window.location.pathname.split("/").at(-1),
+				name: novelTitleNode.innerText,
+			},
+			translator: translatorSpan.innerText.split(":").at(-1).trim(),
+			synopsys: synopsisParagraph.innerText,
 		},
-		translator: translatorSpan.innerText.split(":").at(-1).trim(),
-		synopsys: synopsisParagraph.innerText,
-		cover: coverDataURL,
-	};
+		coverDataURL
+	);
 }
 
 async function getVolumeMetada(novelMetadata, volumeName) {
 	let volumeNumber;
-	[volumeName, volumeNumber] = /(?<=(\d+) - ).+|^.+ (\d+)$/.exec(volumeName).filter((value) => !!value) ?? [volumeName, 0];
+	try {
+		[volumeName, volumeNumber] = /(?<=(\d+) - ).+|^.+ (\d+)$/.exec(volumeName).filter((value) => !!value) ?? [volumeName, 0];
+	} catch {
+		volumeNumber = 0;
+	}
 
 	// const getApiBookSearchURL = (author, novelName, bookName) => `https://www.googleapis.com/books/v1/volumes?q=inauthor:${author},intitle:${encodeURIComponent(novelName)},intitle:${encodeURIComponent(bookName)}`;
 	const getApiBookSearchURL = (author, novelName, bookName) => `https://www.googleapis.com/books/v1/volumes?q=${author},${encodeURIComponent(novelName)},${encodeURIComponent(bookName)}`;
@@ -264,15 +270,93 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 	const volumeName = volumeMetadata.volumeName.replace(/[^A-Za-z0-9]/g, "_");
 	const url = `${backupServerURL}/${collectionName}/${volumeName}/${chapterName}.epub`;
 
-	return await new Promise(async(fullfill) => {
+	return await new Promise(async (fullfill) => {
 		let xhr = new XMLHttpRequest();
 		xhr.open("HEAD", url);
 		xhr.onload = function () {
-			fullfill(xhr.status == 302)
+			fullfill(xhr.status == 302);
 		};
 		xhr.send();
 	});
 }
+
+/* ------------ Debug overlay (affichée sur la page, sans alertes additionnelles) ------------- */
+function createDebugOverlay() {
+	try {
+		const existing = document.getElementById("dumpchapters-debug-overlay");
+		if (existing) return existing;
+
+		const container = document.createElement("div");
+		container.id = "dumpchapters-debug-overlay";
+		container.style.position = "fixed";
+		container.style.right = "12px";
+		container.style.bottom = "12px";
+		container.style.zIndex = "2147483647";
+		container.style.maxWidth = "420px";
+		container.style.maxHeight = "50vh";
+		container.style.overflow = "auto";
+		container.style.background = "rgba(0,0,0,0.75)";
+		container.style.color = "white";
+		container.style.fontSize = "12px";
+		container.style.lineHeight = "1.4";
+		container.style.padding = "8px";
+		container.style.borderRadius = "6px";
+		container.style.boxShadow = "0 2px 10px rgba(0,0,0,0.6)";
+		container.style.fontFamily = "Arial, Helvetica, sans-serif";
+
+		const title = document.createElement("div");
+		title.innerText = "DumpChapters - debug";
+		title.style.fontWeight = "700";
+		title.style.marginBottom = "6px";
+
+		const clearBtn = document.createElement("button");
+		clearBtn.innerText = "Effacer";
+		clearBtn.style.marginRight = "6px";
+		clearBtn.onclick = () => {
+			logArea.innerText = "";
+		};
+
+		const closeBtn = document.createElement("button");
+		closeBtn.innerText = "Fermer";
+		closeBtn.onclick = () => container.remove();
+
+		const controls = document.createElement("div");
+		controls.style.marginBottom = "6px";
+		controls.appendChild(clearBtn);
+		controls.appendChild(closeBtn);
+
+		const logArea = document.createElement("div");
+		logArea.id = "dumpchapters-log";
+		logArea.style.whiteSpace = "pre-wrap";
+
+		container.appendChild(title);
+		container.appendChild(controls);
+		container.appendChild(logArea);
+		document.body.appendChild(container);
+
+		return container;
+	} catch (e) {
+		return null;
+	}
+}
+
+let debugOverlay;
+
+function debugLog(msg, level = "info") {
+	const time = new Date().toLocaleTimeString();
+	const full = `[${time}] ${level.toUpperCase()} - ${msg}`;
+	if (debugOverlay) {
+		const area = debugOverlay.querySelector("#dumpchapters-log");
+		if (area) {
+			area.innerText += full + "\n";
+			debugOverlay.scrollTop = debugOverlay.scrollHeight;
+		}
+	}
+	try {
+		console.log(full);
+	} catch (e) {}
+}
+/* ------------------------------------------------------------------------------------------ */
 
 (async function () {
 	"use strict";
@@ -280,7 +364,14 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 	const params = window.location.search;
 	const pathname = document.location.pathname;
 
+	if (params.includes("debug=true")) {
+		debugOverlay = createDebugOverlay();
+	}
+
+	debugLog("script démarré, pathname: " + pathname);
+
 	if (pathname.match(/\/images\/.+?\/.+/)) {
+		debugLog("gestion image: page /images/ détectée");
 		//#region Gestion des Images
 		const canvas = document.createElement("canvas");
 		const ctx = canvas.getContext("2d");
@@ -293,18 +384,25 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 
 		const localStorageKey = pathname.split("/").at(-1);
 		await GM.setValue(localStorageKey, canvas.toDataURL("image/png"));
+		debugLog("image stockée en GM avec clé " + localStorageKey);
 		return window.close();
 		//#endregion
 	}
 
 	if (pathname.match(/\/oeuvres\/([a-z\-0-9]+)/)) {
+		debugLog("page oeuvre détectée");
 		//#region Oeuvre
 
 		//unfold all volumes to load chapters in the DOM
 		await waitForElement("div > h3");
 		const volumes = [...document.querySelectorAll("div > h3")];
-		const novelMetadata = await getNovelMetadata();
-		await window.localStorage.setItem(`${novelMetadata.collection.id}`, JSON.stringify(novelMetadata));
+		const [novelMetadata, coverDataURL] = await getNovelMetadata();
+		try {
+			await window.localStorage.setItem(`${novelMetadata.collection.id}`, JSON.stringify(novelMetadata));
+			await window.localStorage.setItem(`${novelMetadata.collection.id}-cover`, coverDataURL);
+		} catch (e) {
+			debugLog("localStorage set pour metadata impossible: " + e, "warn");
+		}
 
 		volumes.reverse();
 
@@ -312,10 +410,17 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 		for await (const volume of volumes) {
 			const volumeMetadata = await getVolumeMetada(novelMetadata, volume.innerText);
 			localVolumesMetadata[volume.innerText] = volumeMetadata;
-			window.localStorage.setItem(`${volumeMetadata.collection.id}-${volumeMetadata.collection.number}`, JSON.stringify(volumeMetadata));
+			try {
+				window.localStorage.setItem(`${volumeMetadata.collection.id}-${volumeMetadata.collection.number}`, JSON.stringify(volumeMetadata));
+			} catch (e) {
+				debugLog("localStorage set pour volume impossible: " + e, "warn");
+			}
 		}
 
-		if (!params.includes("dump=true")) return;
+		if (!params.includes("dump=true")) {
+			debugLog("dump=true absent sur page oeuvre -> arrêt");
+			return;
+		}
 
 		for await (const volume of volumes) {
 			volume.click();
@@ -323,9 +428,18 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 			await waitForElement("div > ul a");
 			const chapters = [...volume.nextSibling.querySelectorAll("a")];
 			for await (const chapter of chapters.reverse()) {
-				const shouldSkip = await checkIfExportAlreadyExists(volumeMetadata, decodeURIComponent(chapter.href.split("/").at(-1)));
-				if (shouldSkip) continue;
+				const chapterSlug = decodeURIComponent(chapter.href.split("/").at(-1));
+				debugLog("vérification export existant pour " + chapterSlug);
+				const shouldSkip = await checkIfExportAlreadyExists(volumeMetadata, chapterSlug);
+				if (shouldSkip) {
+					debugLog("skip (existe déjà) : " + chapterSlug);
+					continue;
+				}
 				let tab = window.open(`${chapter.href}?dump=true&close=true`, "_blank");
+				if (!tab) {
+					debugLog("échec ouverture onglet (popup bloquée?)", "error");
+					return;
+				}
 				await waitForTabToBeClosed(tab);
 			}
 			volume.click();
@@ -334,18 +448,22 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 		return;
 		//#endregion
 	} else if (pathname.match(/\/lecture\/(['a-z\-0-9]+)\/volumes\/.+\/chapitres\/(.+)/)) {
-		if (!params.includes("dump=true")) return;
+		debugLog("page chapitre détectée");
+		if (!params.includes("dump=true")) {
+			debugLog("dump=true absent sur page chapitre -> arrêt");
+			return;
+		}
 
 		//#region Chapitre
 		const chapterContentLocator = "#textContainer > .chapter-obf";
 
 		try {
 			await waitForElement(chapterContentLocator, 3_000);
-		}catch {
+		} catch {
 			const buttons = [...document.querySelectorAll("button")];
-			const loadchapterButton = buttons.find(b => b.innerText == "Charger le chapitre")
-			if(!!loadchapterButton){
-				loadchapterButton.click()
+			const loadchapterButton = buttons.find((b) => b.innerText == "Charger le chapitre");
+			if (!!loadchapterButton) {
+				loadchapterButton.click();
 			}
 			await waitForElement(chapterContentLocator);
 		}
@@ -417,9 +535,13 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 				.replace(/[^'a-z]/g, "-");
 
 			const chapterName = document.querySelector("main div div span:nth-of-type(2)").innerText;
-			const volumeNumber = document.querySelector("main div div span").innerText.replace(/[^0-9]/g, "") ?? "0";
-			const localStorageMetadata = JSON.parse(await window.localStorage.getItem(`${novelName}-${volumeNumber}`));
+			const volumeNumber = document.querySelector("main div div span").innerText.replace(/[^0-9]/g, "");
+			const localStorageMetadata = JSON.parse(await window.localStorage.getItem(`${novelName}-${volumeNumber ? volumeNumber : "0"}`));
 			if (!localStorageMetadata) return alert("Impossible d'extraire ce chapitre, merci de charger la page de l'oeuvre dans un premier temps");
+
+			if (!localStorageMetadata.cover) {
+				localStorageMetadata.cover = await window.localStorage.getItem(`${novelName}-cover`);
+			}
 
 			const metadata = {
 				title: chapterName,
@@ -460,8 +582,10 @@ async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
 					method: "POST",
 					body: formData,
 				});
+				debugLog("chapitre envoyé au backupServer");
 			} catch (error) {
 				console.error("❌ Erreur lors de l'envoi :", error);
+				debugLog("erreur envoi: " + (error && error.message ? error.message : error), "error");
 			}
 
 			if (params.includes("close=true")) {
