@@ -4,6 +4,7 @@ import io
 import os
 from werkzeug.utils import secure_filename
 from flask import Flask, request, send_from_directory, abort, send_file, render_template
+from flask_cors import CORS
 import math
 from urllib.parse import unquote
 from typing import List
@@ -46,7 +47,7 @@ def decode_data_url_to_bytes(data_url: str) -> bytes:
         raise ValueError(f"Contenu base64 invalide: {e}")
 
 app = Flask(__name__)
-
+CORS(app)
 
 @app.route('/favicon.ico')
 def favicon():
@@ -93,14 +94,12 @@ def dir_listing(req_path):
 
 @app.post('/')
 def buildEpub():
-    print(request.files)
     files = list(request.files.values())
 
     htmlFiles = list(filter(lambda f: f.filename == "chapter.html", files))
     jsonFiles = list(filter(lambda f: f.filename == "metadata.json", files))
     images = list(filter(lambda f: f.filename.endswith(".png"), files))
 
-    print(files)
     
     if len(htmlFiles) != 1 or len(jsonFiles) != 1:
         return "Can't process files without exactly one 'chapter.html' and one 'metadata.json'",422

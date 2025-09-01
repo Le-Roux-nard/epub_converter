@@ -67,8 +67,8 @@ function wait(time) {
 	return new Promise((res) => setTimeout(res, time));
 }
 
-function waitForElement(selector) {
-	return new Promise((res) => {
+function waitForElement(selector, timeout=10_000) {
+	return new Promise((res, rej) => {
 		const observer = new MutationObserver((mutations, observer) => {
 			const element = document.querySelector(selector);
 			if (element) {
@@ -81,6 +81,11 @@ function waitForElement(selector) {
 			childList: true,
 			subtree: true,
 		});
+
+		setTimeout(() => {
+			observer.disconnect()
+			rej()
+		}, timeout)
 	});
 }
 
@@ -224,30 +229,20 @@ async function getVolumeMetada(novelMetadata, volumeName) {
 		}
 		let bookName = `${validBook.volumeInfo.title} ${validBook.volumeInfo.subtitle ?? ""}`;
 
-		console.log("-".repeat(50))
-		console.log(bookName)
-
-		availableTitleVariation.shift() // remove the book title from the loop to avoid it being replaced
+		availableTitleVariation.shift(); // remove the book title from the loop to avoid it being replaced
 
 		for (variation of availableTitleVariation) {
 			bookName = bookName.replace(variation, "");
-			console.log(bookName)
 		}
-
 
 		bookName = bookName
 			.replace(novelMetadata.collection.name, "")
 			.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, "")
 			.trim();
 
-		console.log(bookName, novelMetadata.collection.name)
-		
 		if (bookName == "") {
 			bookName = validBook.volumeInfo.title;
 		}
-		
-		console.log(bookName)
-
 
 		let volumeCover;
 		if (!!validBook.volumeInfo?.imageLinks?.thumbnail) {
@@ -262,6 +257,21 @@ async function getVolumeMetada(novelMetadata, volumeName) {
 			cover: volumeCover ?? novelMetadata.cover,
 		};
 	}
+}
+
+async function checkIfExportAlreadyExists(volumeMetadata, chapterName) {
+	const collectionName = volumeMetadata.collection.name.replace(/[^A-Za-z0-9]/g, "_");
+	const volumeName = volumeMetadata.volumeName.replace(/[^A-Za-z0-9]/g, "_");
+	const url = `${backupServerURL}/${collectionName}/${volumeName}/${chapterName}.epub`;
+
+	return await new Promise(async(fullfill) => {
+		let xhr = new XMLHttpRequest();
+		xhr.open("HEAD", url);
+		xhr.onload = function () {
+			fullfill(xhr.status == 302)
+		};
+		xhr.send();
+	});
 }
 
 (async function () {
@@ -313,6 +323,8 @@ async function getVolumeMetada(novelMetadata, volumeName) {
 			await waitForElement("div > ul a");
 			const chapters = [...volume.nextSibling.querySelectorAll("a")];
 			for await (const chapter of chapters.reverse()) {
+				const shouldSkip = await checkIfExportAlreadyExists(volumeMetadata, decodeURIComponent(chapter.href.split("/").at(-1)));
+				if (shouldSkip) continue;
 				let tab = window.open(`${chapter.href}?dump=true&close=true`, "_blank");
 				await waitForTabToBeClosed(tab);
 			}
@@ -327,7 +339,19 @@ async function getVolumeMetada(novelMetadata, volumeName) {
 		//#region Chapitre
 		const chapterContentLocator = "#textContainer > .chapter-obf";
 
-		await waitForElement(chapterContentLocator);
+		if(!!loadchapterButton){
+			loadchapterButton.click()
+		}
+		try {
+			await waitForElement(chapterContentLocator, 3_000);
+		}catch {
+			const buttons = [...document.querySelectorAll("button")];
+			const loadchapterButton = buttons.find(b => b.innerText == "Charger le chapitre")
+			if(!!loadchapterButton){
+				loadchapterButton.click()
+			}
+			await waitForElement(chapterContentLocator);
+		}
 
 		try {
 			const cssSheet = [...document.querySelectorAll("link[rel=stylesheet]")].find((s) => s.href.includes("chapitre"));
