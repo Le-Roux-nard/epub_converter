@@ -155,7 +155,7 @@ def buildEpub():
         print(f"adding image {image.filename}")
         epubVolume.add_image(image.filename, imageContent)
     
-    file_location = f".{EPUB_ROOT_FOLDER}/{secure_filename(metadata['collections'][0]['name'])}/{secure_filename(metadata['volumeName'])}"
+    file_location = f"{EPUB_ROOT_FOLDER}/{secure_filename(metadata['collections'][0]['name'])}/{secure_filename(metadata['volumeName'])}"
     file_path = f"{file_location}/{metadata['title']}.epub"
 
     os.makedirs(file_location, exist_ok=True)
