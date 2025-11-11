@@ -116,10 +116,6 @@ def buildEpub():
     
     if metadataFile.content_type != "application/json":
         return abort(406)
-
-    for image in images:
-        if image.content_type != "image/png":
-            return abort(406)
         
     chapterContentFileStream = chapterContentFile.stream
     chapterContent = chapterContentFileStream.read().decode()
@@ -150,7 +146,7 @@ def buildEpub():
         imageFileStream = imageFile.stream
         imageContent = imageFileStream.read()
         imageFileStream.close()
-        epubVolume.add_image(image.filename, imageContent)
+        epubVolume.add_image(imageFile.filename, imageContent)
     
     EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
 
