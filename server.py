@@ -154,7 +154,7 @@ def buildEpub():
     file_path = f"{file_location}/{metadata['title']}.epub"
 
     os.makedirs(file_location, exist_ok=True)
-    epubVolume.save(filename=file_path)
+    epubVolume.save(filename=file_path, with_visible_toc=False, with_cover_as_first_page=False)
 
     return "", 202
 
