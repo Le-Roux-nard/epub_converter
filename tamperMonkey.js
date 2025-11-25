@@ -180,12 +180,12 @@ async function getImageData (
   options = { headers: { referer: document.location.origin } }
 ) {
   const imageData = await fetch(url, options)
-  const blobifiedImage = await imageData.blob() // stored in the browser cache
-  const blobUrl = URL.createObjectURL(blobifiedImage)
-  return blobUrl
+  debugLog(`${url} -> ${imageData.status}:${imageData.statusText}`)
+  const blob = await imageData.blob() // stored in the browser cache
+  return blob
 }
 
-async function fuckCorsAndGetBypassURL (pictureUrl) {
+function fuckCorsAndGetBypassURL (pictureUrl) {
   return `${corsBypassProxy}/?keepReferer=true&url=${pictureUrl}`
 }
 
@@ -197,10 +197,6 @@ async function getNovelMetadata () {
     'section > div span:nth-child(2)'
   )
   const coverElement = document.querySelector('section div img')
-  //const coverDataURL = await getImageData(coverElement.src);
-  const coverBlobUrl = await getImageData(
-    fuckCorsAndGetBypassURL(coverElement.src)
-  )
 
   return [
     {
@@ -212,7 +208,7 @@ async function getNovelMetadata () {
       translator: translatorSpan.innerText.split(':').at(-1).trim(),
       synopsys: synopsisParagraph.innerText
     },
-    coverBlobUrl
+    coverElement.src
   ]
 }
 
@@ -424,25 +420,6 @@ function debugLog (msg, level = 'info') {
 
   debugLog('script démarré, pathname: ' + pathname)
 
-  if (pathname.match(/\/images\/.+?\/.+/)) {
-    debugLog('gestion image: page /images/ détectée')
-    //#region Gestion des Images
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    const img = document.querySelector('img')
-
-    canvas.width = img.width
-    canvas.height = img.height
-
-    ctx.drawImage(img, 0, 0, img.width, img.height)
-
-    const localStorageKey = pathname.split('/').at(-1)
-    await GM.setValue(localStorageKey, canvas.toDataURL('image/png'))
-    debugLog('image stockée en GM avec clé ' + localStorageKey)
-    // return window.close();
-    //#endregion
-  }
-
   if (pathname.match(/\/oeuvres\/([a-z\-0-9]+)/)) {
     debugLog('page oeuvre détectée')
     //#region Oeuvre
@@ -573,9 +550,7 @@ function debugLog (msg, level = 'info') {
         let imageName = decodeURI(image.src.split('/').at(-1))
         if (imageName in chapterImages)
           return alert('Image name already used ! something might be wrong')
-        const imageBlob = await fetch(fuckCorsAndGetBypassURL(image.src), {
-          headers: { referer: document.location.origin }
-        }).then(r => r.blob())
+        const imageBlob = await getImageData(fuckCorsAndGetBypassURL(image.src));
 
         const file = new File([imageBlob], imageName, { type: imageBlob.type })
         chapterContent = chapterContent.replace(
@@ -623,11 +598,20 @@ function debugLog (msg, level = 'info') {
 
       if (!localStorageMetadata.cover) {
         const novelMetadata = JSON.parse(window.localStorage.getItem(novelName))
-        localStorageMetadata.cover = await fetch(novelMetadata.cover)
-          .then(r => r.blob())
-          .then(blobToDataURL) //cover is given as base64 property in body request
-        //TODO: think about passing cover by files like other images
+        localStorageMetadata.cover = novelMetadata.cover
       }
+
+      let coverBlob;
+      try {
+        let coverResponse = await fetch(localStorageMetadata.cover)
+        if (coverResponse.status != 200) throw Error()
+        coverBlob = await coverResponse.blob()
+      } catch {
+        coverBlob = await getImageData(fuckCorsAndGetBypassURL(localStorageMetadata.cover));
+      }
+
+      const coverData = await blobToDataURL(coverBlob)
+      // debugLog(coverData)
 
       const metadata = {
         title: chapterName,
@@ -652,7 +636,7 @@ function debugLog (msg, level = 'info') {
         ],
         subjects: [],
         description: localStorageMetadata.synopsys,
-        cover: localStorageMetadata.cover,
+        cover: coverData,
         volumeName: localStorageMetadata.volumeName
       }
 
@@ -669,6 +653,7 @@ function debugLog (msg, level = 'info') {
       i += 1 // incrémente pour intégrer les métadonnées du chapitre
 
       formData.append(`files[${i}]`, metadataFile)
+      // debugLog(JSON.stringify(formData))
 
       try {
         await fetch(backupServerURL, {
