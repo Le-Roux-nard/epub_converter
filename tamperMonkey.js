@@ -428,7 +428,7 @@ function debugLog (msg, level = 'info') {
     await waitForElement('div > h3')
     const volumes = [...document.querySelectorAll('div > h3')]
     const [novelMetadata, coverBlobUrl] = await getNovelMetadata()
-    console.log(novelMetadata, coverBlobUrl)
+    debugLog(novelMetadata, coverBlobUrl)
     try {
       await window.localStorage.setItem(
         `${novelMetadata.collection.id}`,
@@ -550,7 +550,7 @@ function debugLog (msg, level = 'info') {
         let imageName = decodeURI(image.src.split('/').at(-1))
         if (imageName in chapterImages)
           return alert('Image name already used ! something might be wrong')
-        const imageBlob = await getImageData(fuckCorsAndGetBypassURL(image.src));
+        const imageBlob = await getImageData(fuckCorsAndGetBypassURL(image.src))
 
         const file = new File([imageBlob], imageName, { type: imageBlob.type })
         chapterContent = chapterContent.replace(
@@ -601,13 +601,20 @@ function debugLog (msg, level = 'info') {
         localStorageMetadata.cover = novelMetadata.cover
       }
 
-      let coverBlob;
+      let coverBlob
       try {
         let coverResponse = await fetch(localStorageMetadata.cover)
-        if (coverResponse.status != 200) throw Error()
+        if (coverResponse.status != 200) {
+          alert(
+            "Can't dump this chapter, please go back to main novel page to fetch cover once more"
+          )
+          throw Error()
+        }
         coverBlob = await coverResponse.blob()
       } catch {
-        coverBlob = await getImageData(fuckCorsAndGetBypassURL(localStorageMetadata.cover));
+        coverBlob = await getImageData(
+          fuckCorsAndGetBypassURL(localStorageMetadata.cover)
+        )
       }
 
       const coverData = await blobToDataURL(coverBlob)
