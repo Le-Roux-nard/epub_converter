@@ -551,14 +551,11 @@ function debugLog (msg, level = 'info') {
         if (imageName in chapterImages)
           return alert('Image name already used ! something might be wrong')
         const imageBlob = await getImageData(fuckCorsAndGetBypassURL(image.src))
-
-        const file = new File([imageBlob], imageName, { type: imageBlob.type })
+        const imageData = await blobToDataURL(imageBlob)
         chapterContent = chapterContent.replace(
-          image.src,
-          `images/${imageName}`
+          new RegExp(image.src, 'g'),
+          imageData
         )
-        chapterImages.push(imageName)
-        formData.append(`files[${i}]`, file)
       }
 
       chapterContent = `${lineBreakStyle}\n${chapterContent}` //ajout de la feuille de style custom en premier
