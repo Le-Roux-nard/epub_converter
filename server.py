@@ -87,7 +87,6 @@ def _run_directory_listing(dir_path: str):
     books : List[Book]= []
     for file in files:
         if os.path.isfile(file) and file.lower().endswith(".epub"):
-            print(file)
             book = Book.read(file)
             books.append(book)
 
@@ -237,7 +236,7 @@ def buildEpub():
 
     # Planifie un listing debounced pour n'exécuter la lecture du dossier qu'une seule fois
     try:
-        debounce_execution(final_dir, _run_directory_listing, 5)
+        debounce_execution(final_dir, _run_directory_listing, 60)
     except Exception:
         pass
 
