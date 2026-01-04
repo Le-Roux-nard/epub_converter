@@ -82,6 +82,8 @@ def _run_directory_listing(dir_path: str):
     except Exception:
         nodes = []
 
+    nodes.sort(key=lambda a: int(re.findall(r"(?<=Chapitre )(\d+)", a)[0]) if re.findall(r"(?<=Chapitre )(\d+)", a) else 0)
+
     files = list(map(lambda node: os.path.join(dir_path, node), nodes))
 
     books : List[Book]= []
