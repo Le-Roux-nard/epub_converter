@@ -1,21 +1,14 @@
-import base64
-import binascii
-import io
-import os
+import base64, binascii, io, os, json, requests, threading, re, math
 from werkzeug.utils import secure_filename
 from flask import Flask, request, send_from_directory, abort, send_file, render_template
 from flask_cors import CORS
-import math
 from urllib.parse import unquote
 from typing import List, Callable
 from datetime import datetime
-import json
 from mkepub import Book, BookMetadata, BookCollectionMetadata
-import requests, PIL
-import threading
-import re
 from natsort import natsorted
 from dotenv import load_dotenv
+from PIL import Image
 
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -207,8 +200,11 @@ def buildEpub():
 
     if re.match(url_turbo_regex, metadata["cover"]):
         cover_content = requests.get(metadata["cover"]).content
-        PIL.Image.open(io.BytesIO(cover_content)).verify()
-        epubVolume.set_cover(cover_content)
+        cover_bytes = io.BytesIO(cover_content)
+        im = Image.open(cover_bytes)
+        im.verify()
+        im.convert("RGB").save(cover_bytes, format="PNG")
+        epubVolume.set_cover(cover_bytes.getvalue())
     elif re.match(image_data_url_regexp, metadata["cover"]):
         epubVolume.set_cover(decode_data_url_to_bytes(metadata["cover"]))
     else:
