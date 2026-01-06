@@ -198,15 +198,20 @@ def buildEpub():
 
     epubVolume = Book(**metadata)
 
+    cover_content = None
     if re.match(url_turbo_regex, metadata["cover"]):
         cover_content = requests.get(metadata["cover"]).content
+    elif re.match(image_data_url_regexp, metadata["cover"]):
+        cover_content = decode_data_url_to_bytes(metadata["cover"])
+        
+    if cover_content is not None:
         cover_bytes = io.BytesIO(cover_content)
         im = Image.open(cover_bytes)
         im.verify()
-        im.convert("RGB").save(cover_bytes, format="PNG")
-        epubVolume.set_cover(cover_bytes.getvalue())
-    elif re.match(image_data_url_regexp, metadata["cover"]):
-        epubVolume.set_cover(decode_data_url_to_bytes(metadata["cover"]))
+
+        new_cover = io.BytesIO()
+        im.convert("RGB").save(new_cover, format="PNG")
+        epubVolume.set_cover(new_cover.getvalue())
     else:
         epubVolume.generate_cover()
 
