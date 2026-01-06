@@ -68,7 +68,7 @@ def debounce_execution(dir_path: str, callback: Callable[[list], None], delay: f
         _debounce_timers[dir_path] = timer
         timer.start()
 
-def _run_directory_listing(dir_path: str):
+def _run_book_merging(dir_path: str):
     """Fonction appelée par le Timer pour lister le dossier et appeler le callback (si fourni)."""
     try:
         nodes = os.listdir(dir_path)
@@ -234,7 +234,7 @@ def buildEpub():
 
     # Planifie un listing debounced pour n'exécuter la lecture du dossier qu'une seule fois
     try:
-        debounce_execution(final_dir, _run_directory_listing, 60)
+        debounce_execution(final_dir, _run_book_merging, 60)
     except Exception:
         pass
 
