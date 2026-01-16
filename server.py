@@ -195,6 +195,13 @@ def buildEpub():
         metadata : BookMetadata = json.loads(metadataContent)
     except:
         return abort(406)
+    
+    if len(metadata["collections"]) > 0:
+        for collection in metadata["collections"]:
+            chapter_number = int(re.findall(r"(?<=Chapitre )(\d+)", metadata["title"])[0]) if re.findall(r"(?<=Chapitre )(\d+)", metadata["title"]) else 0
+            collection_index = str(chapter_number).zfill(5)
+            book_index = str(collection["number"]).split(".")[0]
+            collection["number"] = f"{book_index}.{collection_index}"
 
     epubVolume = Book(**metadata)
 
