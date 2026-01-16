@@ -1,16 +1,17 @@
-import os
+import os, re
 from typing import List
 from mkepub import Book, BookMetadata
-import re
+from pathlib import Path
 
-def merge_dir(dir_path: str):
+
+def merge_dir(dir_path: Path):
     """Fonction appelÃ©e par le Timer pour lister le dossier et appeler le callback (si fourni)."""
     try:
         nodes = os.listdir(dir_path)
     except Exception:
         nodes = []
 
-    nodes.sort(key=lambda a: int(re.findall(r"(?<=Chapitre )(\d+)", a)[0]) if re.findall(r"(?<=Chapitre )(\d+)", a) else 0)
+    # nodes.sort(key=lambda a: int(re.findall(r"(?<=Chapitre )(\d+)", a)[0]) if re.findall(r"(?<=Chapitre )(\d+)", a) else 0)
 
     files = list(map(lambda node: os.path.join(dir_path, node), nodes))
 
@@ -19,9 +20,11 @@ def merge_dir(dir_path: str):
         if os.path.isfile(file) and file.lower().endswith(".epub"):
             book = Book.read(file)
             books.append(book)
+    
+    books.sort(key=lambda book: book.metadata["collections"][0]["number"] if "collections" in book.metadata and len(book.metadata["collections"]) > 0 and "number" in book.metadata["collections"][0] else 0)
 
-    folder_name = re.split(r"\\|\/", dir_path)[-1]
-    book_title = folder_name if folder_name not in ["Chapitres", "Volumes"] else books[0].metadata["collections"][0]["name"] if len(books) > 0 and "collections" in books[0].metadata and len(books[0].metadata["collections"]) > 0 else re.split(r"\\|\/", dir_path)[-2]
+    root_folder = dir_path.parent
+    book_title = root_folder.name if root_folder.name not in ["Chapitres", "Volumes"] else books[0].metadata["collections"][0]["name"] if len(books) > 0 and "collections" in books[0].metadata and len(books[0].metadata["collections"]) > 0 else root_folder.parent.name
 
     merged_metadata : BookMetadata = {
         "title": book_title,
@@ -59,4 +62,7 @@ if __name__ == "__main__":
     dir_path = sys.argv[1]
     if dir_path.endswith(os.sep):
         dir_path = dir_path[:-1]
-    merge_dir(dir_path)
+
+    for (dirpath, dirnames, _) in os.walk(dir_path):
+        if len(dirnames) > 0: continue
+        merge_dir(dirpath)
