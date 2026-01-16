@@ -130,7 +130,7 @@ def favicon():
 
 @app.route('/', methods=["GET", "HEAD"], defaults={'req_path': ''})
 @app.route('/<path:req_path>')
-def dir_listing(req_path):
+def dir_listing(req_path:str):
 
     # Joining the base and the requested path
     EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
