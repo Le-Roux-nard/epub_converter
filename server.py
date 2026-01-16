@@ -9,6 +9,7 @@ from mkepub import Book, BookMetadata, BookCollectionMetadata
 from natsort import natsorted
 from dotenv import load_dotenv
 from PIL import Image
+from pathlib import Path
 
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
@@ -47,16 +48,16 @@ def decode_data_url_to_bytes(data_url: str) -> bytes:
 _debounce_lock = threading.Lock()
 _debounce_timers: dict = {}
 
-def debounce_execution(dir_path: str, callback: Callable[[list], None], delay: float = 5.0 ):
+def debounce_execution(dir_path: Path, callback: Callable[[list], None], delay: float = 5.0 ):
     """Planifie une lecture (listing) du dossier `dir_path` après `delay` secondes d'inactivité.
 
     Si la fonction est rappelée avant la fin du délai, l'exécution est repoussée (debounce).
     `callback` est optionnel et reçoit la liste des fichiers au moment de l'exécution.
     """
-    dir_path = os.path.abspath(dir_path)
 
+    resolved_path = dir_path.resolve()
     with _debounce_lock:
-        existing = _debounce_timers.get(dir_path)
+        existing = _debounce_timers.get(resolved_path)
         if existing is not None:
             try:
                 existing.cancel()
@@ -65,28 +66,29 @@ def debounce_execution(dir_path: str, callback: Callable[[list], None], delay: f
 
         timer = threading.Timer(interval=delay, function=callback, args=[dir_path])
         timer.daemon = True
-        _debounce_timers[dir_path] = timer
+        _debounce_timers[resolved_path] = timer
         timer.start()
 
-def _run_book_merging(dir_path: str):
+def _run_book_merging(volume_folder: Path):
     """Fonction appelée par le Timer pour lister le dossier et appeler le callback (si fourni)."""
     try:
-        nodes = os.listdir(dir_path)
+        nodes = os.listdir(volume_folder)
     except Exception:
         nodes = []
 
-    nodes.sort(key=lambda a: int(re.findall(r"(?<=Chapitre )(\d+)", a)[0]) if re.findall(r"(?<=Chapitre )(\d+)", a) else 0)
+    print(volume_folder)
 
-    files = list(map(lambda node: os.path.join(dir_path, node), nodes))
+    files = list(map(lambda node: volume_folder / node, nodes))
 
     books : List[Book]= []
     for file in files:
-        if os.path.isfile(file) and file.lower().endswith(".epub"):
+        if file.is_file() and file.name.lower().endswith(".epub"):
             book = Book.read(file)
             books.append(book)
+    
+    books.sort(key=lambda book: book.metadata["collections"][0]["number"] if "collections" in book.metadata and len(book.metadata["collections"]) > 0 and "number" in book.metadata["collections"][0] else 0)
 
-    folder_name = re.split(r"\\|\/", dir_path)[-1]
-    book_title = folder_name if folder_name not in ["Chapitres", "Volumes"] else books[0].metadata["collections"][0]["name"] if len(books) > 0 and "collections" in books[0].metadata and len(books[0].metadata["collections"]) > 0 else re.split(r"\\|\/", dir_path)[-2]
+    book_title = volume_folder.name if volume_folder.name not in ["Chapitres", "Volumes"] else books[0].metadata["collections"][0]["name"] if len(books) > 0 and "collections" in books[0].metadata and len(books[0].metadata["collections"]) > 0 else volume_folder.parent.name
 
     merged_metadata : BookMetadata = {
         "title": book_title,
@@ -99,18 +101,20 @@ def _run_book_merging(dir_path: str):
         "subjects": list(set([subject for book in books for subject in book.metadata.get("subjects", [])]))
     }
 
-    novel_folder = os.path.join(dir_path, "..")
+    novel_folder = volume_folder.parent
 
     merge_result = Book.merge(merged_metadata, *books)
 
     merge_result.set_cover(books[0].get_cover())
 
-    filename = os.path.join(novel_folder, f"{merged_metadata['title']}.epub")
+    filename = novel_folder / f"{merged_metadata['title']}.epub"
     if os.path.exists(filename):
         try:
             os.unlink(filename)
         except Exception:
             pass
+
+    print(f"saving to {filename}")
     merge_result.save(filename=os.path.join(novel_folder, f"{merged_metadata['title']}.epub"), with_visible_toc=True, with_cover_as_first_page=True)
 
 
@@ -229,24 +233,23 @@ def buildEpub():
         imageFileStream.close()
         epubVolume.add_image(imageFile.filename, imageContent)
     
-    EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
+    EPUB_ROOT_FOLDER = Path(os.environ.get("EPUB_ROOT_FOLDER", "./results/"))
 
-    file_location = [EPUB_ROOT_FOLDER]
+    target_folder = EPUB_ROOT_FOLDER
     if 'collections' in metadata and len(metadata['collections']) > 0:
-        file_location.append(secure_filename(metadata['collections'][0]['name']))
+        target_folder = target_folder / secure_filename(metadata['collections'][0]['name'])
     
     if 'volumeName' in metadata:
-        file_location.append(secure_filename(metadata['volumeName']))
+        target_folder = target_folder / secure_filename(metadata['volumeName'])
 
-    final_dir = os.path.join(*file_location)
-    os.makedirs(final_dir, exist_ok=True)
-    file_path = os.path.join(final_dir, f"{metadata['title']}.epub")
+    os.makedirs(target_folder, exist_ok=True)
+    file_path = target_folder / f"{metadata['title']}.epub"
 
-    epubVolume.save(filename=file_path, with_visible_toc=False, with_cover_as_first_page=False)
+    epubVolume.save(filename=file_path.resolve(), with_visible_toc=False, with_cover_as_first_page=False)
 
     # Planifie un listing debounced pour n'exécuter la lecture du dossier qu'une seule fois
     try:
-        debounce_execution(final_dir, _run_book_merging, 60)
+        debounce_execution(target_folder, _run_book_merging, 6)
     except Exception:
         pass
 
