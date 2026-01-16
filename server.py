@@ -200,6 +200,22 @@ def buildEpub():
     except:
         return abort(406)
     
+    EPUB_ROOT_FOLDER = Path(os.environ.get("EPUB_ROOT_FOLDER", "./results/"))
+
+    target_folder = EPUB_ROOT_FOLDER
+    if 'collections' in metadata and len(metadata['collections']) > 0:
+        target_folder = target_folder / secure_filename(metadata['collections'][0]['name'])
+    
+    if 'volumeName' in metadata:
+        target_folder = target_folder / secure_filename(metadata['volumeName'])
+
+    os.makedirs(target_folder, exist_ok=True)
+    file_path = target_folder / f"{metadata['title']}.epub"
+
+    print(file_path, file_path.exists())
+    if file_path.exists():
+        return "", 208  # Already Reported
+    
     if len(metadata["collections"]) > 0:
         for collection in metadata["collections"]:
             chapter_number = int(re.findall(r"(?<=Chapitre )(\d+)", metadata["title"])[0]) if re.findall(r"(?<=Chapitre )(\d+)", metadata["title"]) else 0
@@ -232,18 +248,6 @@ def buildEpub():
         imageContent = imageFileStream.read()
         imageFileStream.close()
         epubVolume.add_image(imageFile.filename, imageContent)
-    
-    EPUB_ROOT_FOLDER = Path(os.environ.get("EPUB_ROOT_FOLDER", "./results/"))
-
-    target_folder = EPUB_ROOT_FOLDER
-    if 'collections' in metadata and len(metadata['collections']) > 0:
-        target_folder = target_folder / secure_filename(metadata['collections'][0]['name'])
-    
-    if 'volumeName' in metadata:
-        target_folder = target_folder / secure_filename(metadata['volumeName'])
-
-    os.makedirs(target_folder, exist_ok=True)
-    file_path = target_folder / f"{metadata['title']}.epub"
 
     epubVolume.save(filename=file_path.resolve(), with_visible_toc=False, with_cover_as_first_page=False)
 
