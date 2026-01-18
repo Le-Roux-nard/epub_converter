@@ -1,4 +1,12 @@
-import base64, binascii, io, os, json, requests, threading, re, math
+import base64
+import binascii
+import io
+import os
+import json
+import requests
+import threading
+import re
+import math
 from werkzeug.utils import secure_filename
 from flask import Flask, request, send_from_directory, abort, send_file, render_template
 from flask_cors import CORS
@@ -15,7 +23,11 @@ dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 url_turbo_regex = r"^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)$"
-image_data_url_regexp = re.compile(r"^data:(image/[\w.+-]+)?;base64,(.*)$", re.IGNORECASE | re.DOTALL)
+image_data_url_regexp = re.compile(
+    r"^data:(image/[\w.+-]+)?;base64,(.*)$", re.IGNORECASE | re.DOTALL)
+
+EPUB_ROOT_FOLDER = Path(os.environ.get("EPUB_ROOT_FOLDER", "./results/"))
+
 
 class NovelMetadata:
     author:str
@@ -34,10 +46,12 @@ def convert_size(size_bytes):
    s = round(size_bytes / p, 2)
    return "%s %s" % (s, size_name[i])
 
+
 def decode_data_url_to_bytes(data_url: str) -> bytes:
     m = image_data_url_regexp.match(data_url.strip())
     if not m:
-        raise ValueError("Format data URL invalide. Attendu: data:image/<type>;base64,<...>")
+        raise ValueError(
+            "Format data URL invalide. Attendu: data:image/<type>;base64,<...>")
 
     b64_part = m.group(2)
     try:
@@ -45,10 +59,12 @@ def decode_data_url_to_bytes(data_url: str) -> bytes:
     except binascii.Error as e:
         raise ValueError(f"Contenu base64 invalide: {e}")
 
+
 _debounce_lock = threading.Lock()
 _debounce_timers: dict = {}
 
-def debounce_execution(dir_path: Path, callback: Callable[[list], None], delay: float = 5.0 ):
+
+def debounce_execution(dir_path: Path, callback: Callable[[list], None], delay: float = 5.0):
     """Planifie une lecture (listing) du dossier `dir_path` après `delay` secondes d'inactivité.
 
     Si la fonction est rappelée avant la fin du délai, l'exécution est repoussée (debounce).
@@ -64,10 +80,12 @@ def debounce_execution(dir_path: Path, callback: Callable[[list], None], delay: 
             except Exception:
                 pass
 
-        timer = threading.Timer(interval=delay, function=callback, args=[dir_path])
+        timer = threading.Timer(
+            interval=delay, function=callback, args=[dir_path])
         timer.daemon = True
         _debounce_timers[resolved_path] = timer
         timer.start()
+
 
 def _run_book_merging(volume_folder: Path):
     """Fonction appelée par le Timer pour lister le dossier et appeler le callback (si fourni)."""
@@ -76,25 +94,25 @@ def _run_book_merging(volume_folder: Path):
     except Exception:
         nodes = []
 
-    print(volume_folder)
-
     files = list(map(lambda node: volume_folder / node, nodes))
 
-    books : List[Book]= []
+    books: List[Book] = []
     for file in files:
         if file.is_file() and file.name.lower().endswith(".epub"):
             book = Book.read(file)
             books.append(book)
-    
-    books.sort(key=lambda book: book.metadata["collections"][0]["number"] if "collections" in book.metadata and len(book.metadata["collections"]) > 0 and "number" in book.metadata["collections"][0] else 0)
 
-    book_title = volume_folder.name if volume_folder.name not in ["Chapitres", "Volumes"] else books[0].metadata["collections"][0]["name"] if len(books) > 0 and "collections" in books[0].metadata and len(books[0].metadata["collections"]) > 0 else volume_folder.parent.name
+    books.sort(key=lambda book: book.metadata["collections"][0]["number"] if "collections" in book.metadata and len(
+        book.metadata["collections"]) > 0 and "number" in book.metadata["collections"][0] else 0)
 
-    merged_metadata : BookMetadata = {
+    book_title = volume_folder.name if volume_folder.name not in ["Chapitres", "Volumes"] else books[0].metadata["collections"][0]["name"] if len(
+        books) > 0 and "collections" in books[0].metadata and len(books[0].metadata["collections"]) > 0 else volume_folder.parent.name
+
+    merged_metadata: BookMetadata = {
         "title": book_title,
         "collections": books[0].metadata["collections"] if len(books) > 0 and "collections" in books[0].metadata else [],
-        "creators": [dict(t) for t in list({ tuple(sorted(creator.items())) for book in books for creator in book.metadata["creators"] })],
-        "contributors": [dict(t) for t in list({ tuple(sorted(contributor.items())) for book in books for contributor in book.metadata["contributors"] })],
+        "creators": [dict(t) for t in list({tuple(sorted(creator.items())) for book in books for creator in book.metadata["creators"]})],
+        "contributors": [dict(t) for t in list({tuple(sorted(contributor.items())) for book in books for contributor in book.metadata["contributors"]})],
         "description": "\n\n".join(set([book.metadata["description"] for book in books if "description" in book.metadata])),
         "lang": books[0].metadata["lang"] if len(books) > 0 and "lang" in books[0].metadata else "en",
         "rights": books[0].metadata["rights"] if len(books) > 0 and "rights" in books[0].metadata else "",
@@ -102,7 +120,8 @@ def _run_book_merging(volume_folder: Path):
     }
 
     if len(merged_metadata["collections"]) > 0 and "number" in merged_metadata["collections"][0]:
-        merged_metadata["collections"][0]["number"] = int(merged_metadata["collections"][0]["number"])
+        merged_metadata["collections"][0]["number"] = int(
+            merged_metadata["collections"][0]["number"])
 
     novel_folder = volume_folder.parent
 
@@ -117,14 +136,16 @@ def _run_book_merging(volume_folder: Path):
         except Exception:
             pass
 
-    print(f"saving to {filename}")
-    merge_result.save(filename=os.path.join(novel_folder, f"{merged_metadata['title']}.epub"), with_visible_toc=True, with_cover_as_first_page=True)
+    merge_result.save(filename=os.path.join(
+        novel_folder, f"{merged_metadata['title']}.epub"), with_visible_toc=True, with_cover_as_first_page=True)
 
 
 # ------------------------------------------
 
+
 app = Flask(__name__)
 CORS(app)
+
 
 @app.route('/favicon.ico')
 def favicon():
@@ -133,10 +154,9 @@ def favicon():
 
 @app.route('/', methods=["GET", "HEAD"], defaults={'req_path': ''})
 @app.route('/<path:req_path>')
-def dir_listing(req_path:str):
+def dir_listing(req_path: str):
 
     # Joining the base and the requested path
-    EPUB_ROOT_FOLDER = os.environ.get("EPUB_ROOT_FOLDER", "./results/")
     abs_path = os.path.join(EPUB_ROOT_FOLDER, unquote(req_path))
 
     # Return 404 if path doesn't exist
@@ -149,10 +169,10 @@ def dir_listing(req_path:str):
             return send_file(abs_path)
         else:
             return "", 302
-    
+
     if request.method != "GET":
         return "", 405
-    
+
     actual_dir = req_path.split("/")[-1]
     previous_dir = "/".join(req_path.split("/")[:-1])
 
@@ -165,8 +185,7 @@ def dir_listing(req_path:str):
         "mdate": str(datetime.fromtimestamp(os.path.getmtime(os.path.join(abs_path, node))))[:19]
     }, os.listdir(abs_path)))
 
-
-    return render_template('index.html',previous_dir=previous_dir, actual_dir=req_path, files=natsorted(files, key=lambda f: f["name"]))
+    return render_template('index.html', previous_dir=previous_dir, actual_dir=req_path, files=natsorted(files, key=lambda f: f["name"]))
 
 
 @app.post('/')
@@ -177,51 +196,49 @@ def buildEpub():
     jsonFiles = list(filter(lambda f: f.filename == "metadata.json", files))
     images = list(filter(lambda f: f.filename.endswith(".png"), files))
 
-    
     if len(htmlFiles) != 1 or len(jsonFiles) != 1:
-        return "Can't process files without exactly one 'chapter.html' and one 'metadata.json'",422
+        return "Can't process files without exactly one 'chapter.html' and one 'metadata.json'", 422
 
     chapterContentFile = htmlFiles[0]
     metadataFile = jsonFiles[0]
-    
+
     if chapterContentFile.content_type != "text/html":
         return abort(406)
-    
+
     if metadataFile.content_type != "application/json":
         return abort(406)
-        
+
     chapterContentFileStream = chapterContentFile.stream
     chapterContent = chapterContentFileStream.read().decode()
     chapterContentFileStream.close()
-    
+
     metadataFileStream = metadataFile.stream
     metadataContent = metadataFileStream.read()
     metadataFileStream.close()
 
     try:
-        metadata : BookMetadata = json.loads(metadataContent)
+        metadata: BookMetadata = json.loads(metadataContent)
     except:
         return abort(406)
-    
-    EPUB_ROOT_FOLDER = Path(os.environ.get("EPUB_ROOT_FOLDER", "./results/"))
 
     target_folder = EPUB_ROOT_FOLDER
     if 'collections' in metadata and len(metadata['collections']) > 0:
-        target_folder = target_folder / secure_filename(metadata['collections'][0]['name'])
-    
+        target_folder = target_folder / \
+            secure_filename(metadata['collections'][0]['name'])
+
     if 'volumeName' in metadata:
         target_folder = target_folder / secure_filename(metadata['volumeName'])
 
     os.makedirs(target_folder, exist_ok=True)
     file_path = target_folder / f"{metadata['title']}.epub"
 
-    print(file_path, file_path.exists())
     if file_path.exists():
         return "", 208  # Already Reported
-    
+
     if len(metadata["collections"]) > 0:
         for collection in metadata["collections"]:
-            chapter_number = int(re.findall(r"(?<=Chapitre )(\d+)", metadata["title"])[0]) if re.findall(r"(?<=Chapitre )(\d+)", metadata["title"]) else 0
+            chapter_number = int(re.findall(r"(?<=Chapitre )(\d+)", metadata["title"])[
+                                 0]) if re.findall(r"(?<=Chapitre )(\d+)", metadata["title"]) else 0
             collection_index = str(chapter_number).zfill(5)
             book_index = str(collection["number"]).split(".")[0]
             collection["number"] = f"{book_index}.{collection_index}"
@@ -233,7 +250,7 @@ def buildEpub():
         cover_content = requests.get(metadata["cover"]).content
     elif re.match(image_data_url_regexp, metadata["cover"]):
         cover_content = decode_data_url_to_bytes(metadata["cover"])
-        
+
     if cover_content is not None:
         cover_bytes = io.BytesIO(cover_content)
         im = Image.open(cover_bytes)
@@ -252,7 +269,8 @@ def buildEpub():
         imageFileStream.close()
         epubVolume.add_image(imageFile.filename, imageContent)
 
-    epubVolume.save(filename=file_path.resolve(), with_visible_toc=False, with_cover_as_first_page=False)
+    epubVolume.save(filename=file_path.resolve(),
+                    with_visible_toc=False, with_cover_as_first_page=False)
 
     # Planifie un listing debounced pour n'exécuter la lecture du dossier qu'une seule fois
     try:
