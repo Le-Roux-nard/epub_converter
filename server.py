@@ -237,7 +237,7 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
             chapter_metadata["title"] = unquote(
                 chapter_url.split("/")[-1]).strip()
 
-            chapter_obfuscated_html = thread_session.get(f"{root_url}&path={quote(chapter_url)}", headers={
+            chapter_obfuscated_html = thread_session.get(f"{root_url}&path={chapter_url}", headers={
                 "Origin": "https://world-novel.fr",
                 "X-Firebase-AppCheck": "eyJraWQiOiJ2ckU4dWciLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxOjYxMTA4Nzk4MzcwOndlYjo2N2E2MDYwOTQ0YjRlYWY4ZWIyOGZiIiwiYXVkIjpbInByb2plY3RzLzYxMTA4Nzk4MzcwIiwicHJvamVjdHMvdmljdG9yaWFuLW5vdmVsLWhvdXNlIl0sInByb3ZpZGVyIjoicmVjYXB0Y2hhX3YzIiwiaXNzIjoiaHR0cHM6Ly9maXJlYmFzZWFwcGNoZWNrLmdvb2dsZWFwaXMuY29tLzYxMTA4Nzk4MzcwIiwiZXhwIjoxNzY5Mjc4NTA4LCJpYXQiOjE3Njg2NzM3MDgsImp0aSI6ImY1OE5KVnFyMzhDR1F0TnVYTW8tWENXQUZnUG9BUnRLUlFjdlVMNll6eDQifQ.Mf8IUGoAiTjF5PgOvi14-hykhBVfHzCk7lPNCWuW7Y10CYrPA88KHp6c0aVsg7GygJx0rXDLCTr3lpM7Gqbu6iF_yAWa0vHJc7pjUPmSol_Xe8swP5WgMDDCIUbL339tLIzbGdu6mZeWI7p2XPqsZ13_WiSHX3QpGhYjivT-Z84YICZAhubzgM-bRj5cTYnf1dmtU43vdRsR1-6p1saiaGaep_sZQXpJcDPaaienqvfZ7uG34-Gsjk6nngbQ_m7V5jU_G3HhqIv854w4jTZ6oYVn8MLTmbTOtcB31P9zaEE_XDNco9aJcdVb_aEclDxVrFQ5sCr3wJHjtnscgE3VZgtBBNKHFMxzBByJoGfi99MB28oGrQ6tzgNVD0NI_laezvX0zpkDCeE_ApHZOIzHRFlbK6YQm3xKlb7DVAKYL0DeabxNMq1SDMDx_DHQyyTqSLq0Jy3XZOpBZ8TKqyr8K4SCCLEswHOBCz0MeXKx5sGlQHDfxbLpzPjGev-cKaxr"
             }, timeout=60).content.decode()
@@ -474,6 +474,7 @@ def requestNovelDump(novel_name: str, volume_name: str):
         if file_path.exists():
             continue
         else:
+            exploded_chapter[-1] = quote(exploded_chapter[-1])
             missing_chapters_list.append("/".join(exploded_chapter))
 
     status = 500
