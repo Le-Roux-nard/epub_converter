@@ -202,104 +202,108 @@ def _run_book_merging(volume_folder: Path):
 
 def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelMetadata, target_folder: Path):
 
-    series_zfill = {}
-    thread_session = requests.Session()
-    thread_session.max_redirects = 5
-    thread_session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0",
-        "Referer": "https://world-novel.fr/"
-    })
-    for collection in metadata["collections"]:
-        series_zfill[collection["name"]] = int(
-            len(str(len(metadata["chapters"]))))
+    try:
+        series_zfill = {}
+        thread_session = requests.Session()
+        thread_session.max_redirects = 5
+        thread_session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0",
+            "Referer": "https://world-novel.fr/"
+        })
+        for collection in metadata["collections"]:
+            series_zfill[collection["name"]] = int(
+                len(str(len(metadata["chapters"]))))
 
-    cover_content = None
-    if re.match(url_turbo_regex, metadata["cover"]):
-        cover_content = thread_session.get(metadata["cover"]).content
-    elif re.match(image_data_url_regexp, metadata["cover"]):
-        cover_content = decode_data_url_to_bytes(metadata["cover"])
+        cover_content = None
+        if re.match(url_turbo_regex, metadata["cover"]):
+            cover_content = thread_session.get(metadata["cover"]).content
+        elif re.match(image_data_url_regexp, metadata["cover"]):
+            cover_content = decode_data_url_to_bytes(metadata["cover"])
 
-    # Convert cover to PNG as not all EPUB readers support other formats like WEBP even though EPUB standard allows it
-    if cover_content is not None:
-        cover_bytes = io.BytesIO(cover_content)
-        im = Image.open(cover_bytes)
-        new_cover = io.BytesIO()
-        im.convert("RGB").save(new_cover, format="PNG")
-        cover_content = new_cover.getvalue()
+        # Convert cover to PNG as not all EPUB readers support other formats like WEBP even though EPUB standard allows it
+        if cover_content is not None:
+            cover_bytes = io.BytesIO(cover_content)
+            im = Image.open(cover_bytes)
+            new_cover = io.BytesIO()
+            im.convert("RGB").save(new_cover, format="PNG")
+            cover_content = new_cover.getvalue()
 
-    root_url = f"https://cdn.world-novel.fr/chapitres/?userId=dEVJy3lAr5O3r3AQ0JSjraRMXvC3"
+        root_url = f"https://cdn.world-novel.fr/chapitres/?userId=dEVJy3lAr5O3r3AQ0JSjraRMXvC3"
 
-    for (chapter_index, chapter_url) in enumerate(metadata["chapters"]):
-        chapter_metadata = copy.deepcopy(metadata)
-        chapter_metadata.pop("chapters", None)
-        chapter_metadata.pop("volumeName", None)
-        chapter_metadata["title"] = unquote(chapter_url.split("/")[-1]).strip()
+        for (chapter_index, chapter_url) in enumerate(metadata["chapters"]):
+            chapter_metadata = copy.deepcopy(metadata)
+            chapter_metadata.pop("chapters", None)
+            chapter_metadata.pop("volumeName", None)
+            chapter_metadata["title"] = unquote(
+                chapter_url.split("/")[-1]).strip()
 
-        chapter_obfuscated_html = thread_session.get(f"{root_url}&path={chapter_url}", headers={
-            "Origin": "https://world-novel.fr",
-            "X-Firebase-AppCheck": "eyJraWQiOiJ2ckU4dWciLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxOjYxMTA4Nzk4MzcwOndlYjo2N2E2MDYwOTQ0YjRlYWY4ZWIyOGZiIiwiYXVkIjpbInByb2plY3RzLzYxMTA4Nzk4MzcwIiwicHJvamVjdHMvdmljdG9yaWFuLW5vdmVsLWhvdXNlIl0sInByb3ZpZGVyIjoicmVjYXB0Y2hhX3YzIiwiaXNzIjoiaHR0cHM6Ly9maXJlYmFzZWFwcGNoZWNrLmdvb2dsZWFwaXMuY29tLzYxMTA4Nzk4MzcwIiwiZXhwIjoxNzY5Mjc4NTA4LCJpYXQiOjE3Njg2NzM3MDgsImp0aSI6ImY1OE5KVnFyMzhDR1F0TnVYTW8tWENXQUZnUG9BUnRLUlFjdlVMNll6eDQifQ.Mf8IUGoAiTjF5PgOvi14-hykhBVfHzCk7lPNCWuW7Y10CYrPA88KHp6c0aVsg7GygJx0rXDLCTr3lpM7Gqbu6iF_yAWa0vHJc7pjUPmSol_Xe8swP5WgMDDCIUbL339tLIzbGdu6mZeWI7p2XPqsZ13_WiSHX3QpGhYjivT-Z84YICZAhubzgM-bRj5cTYnf1dmtU43vdRsR1-6p1saiaGaep_sZQXpJcDPaaienqvfZ7uG34-Gsjk6nngbQ_m7V5jU_G3HhqIv854w4jTZ6oYVn8MLTmbTOtcB31P9zaEE_XDNco9aJcdVb_aEclDxVrFQ5sCr3wJHjtnscgE3VZgtBBNKHFMxzBByJoGfi99MB28oGrQ6tzgNVD0NI_laezvX0zpkDCeE_ApHZOIzHRFlbK6YQm3xKlb7DVAKYL0DeabxNMq1SDMDx_DHQyyTqSLq0Jy3XZOpBZ8TKqyr8K4SCCLEswHOBCz0MeXKx5sGlQHDfxbLpzPjGev-cKaxr"
-        }, timeout=60).content.decode()
+            chapter_obfuscated_html = thread_session.get(f"{root_url}&path={chapter_url}", headers={
+                "Origin": "https://world-novel.fr",
+                "X-Firebase-AppCheck": "eyJraWQiOiJ2ckU4dWciLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxOjYxMTA4Nzk4MzcwOndlYjo2N2E2MDYwOTQ0YjRlYWY4ZWIyOGZiIiwiYXVkIjpbInByb2plY3RzLzYxMTA4Nzk4MzcwIiwicHJvamVjdHMvdmljdG9yaWFuLW5vdmVsLWhvdXNlIl0sInByb3ZpZGVyIjoicmVjYXB0Y2hhX3YzIiwiaXNzIjoiaHR0cHM6Ly9maXJlYmFzZWFwcGNoZWNrLmdvb2dsZWFwaXMuY29tLzYxMTA4Nzk4MzcwIiwiZXhwIjoxNzY5Mjc4NTA4LCJpYXQiOjE3Njg2NzM3MDgsImp0aSI6ImY1OE5KVnFyMzhDR1F0TnVYTW8tWENXQUZnUG9BUnRLUlFjdlVMNll6eDQifQ.Mf8IUGoAiTjF5PgOvi14-hykhBVfHzCk7lPNCWuW7Y10CYrPA88KHp6c0aVsg7GygJx0rXDLCTr3lpM7Gqbu6iF_yAWa0vHJc7pjUPmSol_Xe8swP5WgMDDCIUbL339tLIzbGdu6mZeWI7p2XPqsZ13_WiSHX3QpGhYjivT-Z84YICZAhubzgM-bRj5cTYnf1dmtU43vdRsR1-6p1saiaGaep_sZQXpJcDPaaienqvfZ7uG34-Gsjk6nngbQ_m7V5jU_G3HhqIv854w4jTZ6oYVn8MLTmbTOtcB31P9zaEE_XDNco9aJcdVb_aEclDxVrFQ5sCr3wJHjtnscgE3VZgtBBNKHFMxzBByJoGfi99MB28oGrQ6tzgNVD0NI_laezvX0zpkDCeE_ApHZOIzHRFlbK6YQm3xKlb7DVAKYL0DeabxNMq1SDMDx_DHQyyTqSLq0Jy3XZOpBZ8TKqyr8K4SCCLEswHOBCz0MeXKx5sGlQHDfxbLpzPjGev-cKaxr"
+            }, timeout=60).content.decode()
 
-        soup = BeautifulSoup(chapter_obfuscated_html,
-                             "html.parser")  # ou "html.parser"
-        html_link_node = soup.find("link", {"rel": "stylesheet"})
-        if not html_link_node or "href" not in html_link_node.attrs:
-            print(chapter_obfuscated_html[:500])
-            print(chapter_url)
-            raise Exception(
-                f"Impossible de trouver le lien CSS dans le HTML pour {unquote(chapter_url)}")
-        css_url = html_link_node["href"]
+            soup = BeautifulSoup(chapter_obfuscated_html,
+                                 "html.parser")  # ou "html.parser"
+            html_link_node = soup.find("link", {"rel": "stylesheet"})
+            if not html_link_node or "href" not in html_link_node.attrs:
+                print(chapter_obfuscated_html[:500])
+                raise Exception(
+                    f"Impossible de trouver le lien CSS dans le HTML pour {unquote(chapter_url)}")
+            css_url = html_link_node["href"]
 
-        css_content = thread_session.get(css_url).content.decode()
-        obfuscating_classes = re.findall(r'(?<=\.).{8}(?={.+;})', css_content)
-        obfuscating_classes_selector = list(
-            map(lambda c: f"span[class='{c}']", obfuscating_classes))
+            css_content = thread_session.get(css_url).content.decode()
+            obfuscating_classes = re.findall(
+                r'(?<=\.).{8}(?={.+;})', css_content)
+            obfuscating_classes_selector = list(
+                map(lambda c: f"span[class='{c}']", obfuscating_classes))
 
-        if len(obfuscating_classes_selector) == 0:
-            raise Exception(
-                f"Impossible de trouver les classes d'obfuscation dans le CSS pour {unquote(chapter_url)}")
+            if len(obfuscating_classes_selector) == 0:
+                raise Exception(
+                    f"Impossible de trouver les classes d'obfuscation dans le CSS pour {unquote(chapter_url)}")
 
-        for s in soup.select(",".join(obfuscating_classes_selector)):
-            s.decompose()
+            for s in soup.select(",".join(obfuscating_classes_selector)):
+                s.decompose()
 
-        for img in soup.find_all("img"):
-            src = img.get("src")
-            if src and re.match(url_turbo_regex, src):
-                im_data = thread_session.get(src).content
-                im_bytes = io.BytesIO(im_data)
-                im = Image.open(im_bytes)
-                im.verify()
+            for img in soup.find_all("img"):
+                src = img.get("src")
+                if src and re.match(url_turbo_regex, src):
+                    im_data = thread_session.get(src).content
+                    im_bytes = io.BytesIO(im_data)
+                    im = Image.open(im_bytes)
+                    im.verify()
 
-                png_im = io.BytesIO()
-                im.convert("RGB").save(png_im, format="PNG")
-                b64_encoded_im = base64.b64encode(
-                    png_im.getvalue()).decode("utf-8")
-                dataURL_im = f"data:image/png;base64,{b64_encoded_im}"
-                img.attrs['src'] = dataURL_im
+                    png_im = io.BytesIO()
+                    im.convert("RGB").save(png_im, format="PNG")
+                    b64_encoded_im = base64.b64encode(
+                        png_im.getvalue()).decode("utf-8")
+                    dataURL_im = f"data:image/png;base64,{b64_encoded_im}"
+                    img.attrs['src'] = dataURL_im
 
-        deobfuscated_html = soup.select_one("div").decode_contents()
-        cleaned_chapter_html = re.sub(
-            r'<span class=".{8}">(.+?)<\/span>', r'\g<1>', deobfuscated_html)
-        
-        cleaned_chapter_html = line_break_style + cleaned_chapter_html
+            deobfuscated_html = soup.select_one("div").decode_contents()
+            cleaned_chapter_html = re.sub(
+                r'<span class=".{8}">(.+?)<\/span>', r'\g<1>', deobfuscated_html)
 
-        for collection in chapter_metadata["collections"]:
-            collection_index = str(
-                chapter_index + 1).zfill(series_zfill[collection["name"]])
-            collection["number"] = f"{collection['number']}.{collection_index}"
+            cleaned_chapter_html = line_break_style + cleaned_chapter_html
 
-        epubChapter = Book(**chapter_metadata)
-        epubChapter.set_cover(cover_content)
-        epubChapter.add_page(chapter_metadata["title"], cleaned_chapter_html)
-        file_path = target_folder / f"{chapter_metadata['title']}.epub"
-        if os.path.exists(file_path) is False:
-            epubChapter.save(filename=file_path.resolve(
-            ), with_visible_toc=False, with_cover_as_first_page=False)
+            for collection in chapter_metadata["collections"]:
+                collection_index = str(
+                    chapter_index + 1).zfill(series_zfill[collection["name"]])
+                collection["number"] = f"{collection['number']}.{collection_index}"
 
-    print("Finished downloading volume:", novelName, volumeName)
-    _run_book_merging(target_folder)
-    locks.pop(f"{novelName}/{volumeName}", None)
-    pass
+            epubChapter = Book(**chapter_metadata)
+            epubChapter.set_cover(cover_content)
+            epubChapter.add_page(
+                chapter_metadata["title"], cleaned_chapter_html)
+            file_path = target_folder / f"{chapter_metadata['title']}.epub"
+            if os.path.exists(file_path) is False:
+                epubChapter.save(filename=file_path.resolve(
+                ), with_visible_toc=False, with_cover_as_first_page=False)
+        print("Finished downloading volume:", novelName, volumeName)
+    except Exception as err:
+        print(f"An exception occured while dumping {novelName} / {volumeName}", err)
+    finally:
+        _run_book_merging(target_folder)
+        locks.pop(f"{novelName}/{volumeName}", None)
 
 # ------------------------------------------
 
@@ -482,8 +486,8 @@ def requestNovelDump(novel_name: str, volume_name: str):
 
     metadata["chapters"] = missing_chapters_list
 
-    threading.Thread(target=dumpEpubFromVolumeMetadata, args=(
-        novel_name, volume_name, metadata, target_folder)).start()
+    # threading.Thread(target=dumpEpubFromVolumeMetadata, args=(
+    #     novel_name, volume_name, metadata, target_folder)).start()
 
     return missing_chapters_list, status
 
