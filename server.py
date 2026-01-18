@@ -469,7 +469,7 @@ def requestNovelDump(novel_name: str, volume_name: str):
         exploded_chapter[-1] = re.sub(
             r'\/|(?<=[^.])\.{2}(?=[^.])|\.{4,}', '', exploded_chapter[-1])
 
-        file_path = target_folder / f"{exploded_chapter[-1]}.epub"
+        file_path = target_folder / f"{exploded_chapter[-1].strip()}.epub"
         if file_path.exists():
             continue
         else:
