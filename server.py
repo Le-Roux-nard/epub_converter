@@ -298,10 +298,11 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
                 epubChapter.save(filename=file_path.resolve(
                 ), with_visible_toc=False, with_cover_as_first_page=False)
         print("Finished downloading volume:", novelName, volumeName)
+        _run_book_merging(target_folder)
     except Exception as err:
         print(f"An exception occured while dumping {novelName} / {volumeName}", err)
     finally:
-        _run_book_merging(target_folder)
+        print("Releasing lock for:", novelName, volumeName)
         locks.pop(f"{novelName}/{volumeName}", None)
 
 # ------------------------------------------
