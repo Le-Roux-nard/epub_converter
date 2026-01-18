@@ -485,8 +485,8 @@ def requestNovelDump(novel_name: str, volume_name: str):
 
     metadata["chapters"] = missing_chapters_list
 
-    # threading.Thread(target=dumpEpubFromVolumeMetadata, args=(
-    #     novel_name, volume_name, metadata, target_folder)).start()
+    threading.Thread(target=dumpEpubFromVolumeMetadata, args=(
+        novel_name, volume_name, metadata, target_folder)).start()
 
     return missing_chapters_list, status
 
