@@ -162,22 +162,81 @@ async function getVolumeMetada (novelMetadata, volumeName) {
   }
 }
 
-async function checkIfExportAlreadyExists (volumeMetadata, chapterName) {
-  const collectionName = volumeMetadata.collection.name.replace(
-    /[^A-Za-z0-9]/g,
-    '_'
-  )
-  const volumeName = volumeMetadata.volumeName.replace(/[^A-Za-z0-9]/g, '_')
-  const url = `${backupServerURL}/${collectionName}/${volumeName}/${chapterName}.epub`
+/* ------------ Debug overlay (affichée sur la page, sans alertes additionnelles) ------------- */
+function createDebugOverlay () {
+  try {
+    const existing = document.getElementById('dumpchapters-debug-overlay')
+    if (existing) return existing
 
-  return await new Promise(async fullfill => {
-    let xhr = new XMLHttpRequest()
-    xhr.open('HEAD', url)
-    xhr.onload = function () {
-      fullfill(xhr.status == 302)
+    const container = document.createElement('div')
+    container.id = 'dumpchapters-debug-overlay'
+    container.style.position = 'fixed'
+    container.style.right = '12px'
+    container.style.bottom = '12px'
+    container.style.zIndex = '2147483647'
+    container.style.maxWidth = '420px'
+    container.style.maxHeight = '50vh'
+    container.style.overflow = 'auto'
+    container.style.background = 'rgba(0,0,0,0.75)'
+    container.style.color = 'white'
+    container.style.fontSize = '12px'
+    container.style.lineHeight = '1.4'
+    container.style.padding = '8px'
+    container.style.borderRadius = '6px'
+    container.style.boxShadow = '0 2px 10px rgba(0,0,0,0.6)'
+    container.style.fontFamily = 'Arial, Helvetica, sans-serif'
+
+    const title = document.createElement('div')
+    title.innerText = 'DumpChapters - debug'
+    title.style.fontWeight = '700'
+    title.style.marginBottom = '6px'
+
+    const clearBtn = document.createElement('button')
+    clearBtn.innerText = 'Effacer'
+    clearBtn.style.marginRight = '6px'
+    clearBtn.onclick = () => {
+      logArea.innerText = ''
     }
-    xhr.send()
-  })
+
+    const closeBtn = document.createElement('button')
+    closeBtn.innerText = 'Fermer'
+    closeBtn.onclick = () => container.remove()
+
+    const controls = document.createElement('div')
+    controls.style.marginBottom = '6px'
+    controls.appendChild(clearBtn)
+    controls.appendChild(closeBtn)
+
+    const logArea = document.createElement('div')
+    logArea.id = 'dumpchapters-log'
+    logArea.style.whiteSpace = 'pre-wrap'
+
+    container.appendChild(title)
+    container.appendChild(controls)
+    container.appendChild(logArea)
+    document.body.appendChild(container)
+
+    return container
+  } catch (e) {
+    return null
+  }
+}
+
+const debugOverlay = createDebugOverlay()
+
+function debugLog (msg, level = 'info') {
+  const time = new Date().toLocaleTimeString()
+  const full = `[${time}] ${level.toUpperCase()} - ${msg}`
+  if (debugOverlay) {
+    const area = debugOverlay.querySelector('#dumpchapters-log')
+    if (area) {
+      area.innerText += full + '\n'
+      debugOverlay.scrollTop = debugOverlay.scrollHeight
+    }
+  }
+  try {
+    console.log(full)
+  } catch (e) {}
 }
 
 if (window.top != window.self) {
@@ -253,14 +312,23 @@ if (window.top != window.self) {
       }
 
       try {
-        await fetch(
+        const res = await fetch(
           `${backupServerURL}/${novelMetadata.title}/${volume.innerText}`,
           {
             method: 'POST',
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             body: JSON.stringify(metadata)
           }
         )
+
+        if (res.status === 202 || res.status === 206) {
+          let new_chapters = await res.json()
+          debugLog(`Volume "${volume.innerText}" processed`)
+          debugLog(`New chapters: ${new_chapters.length}`)
+          if (new_chapters.length <= 10) {
+            debugLog("\n" + new_chapters.join('\n'))
+          }
+        }
       } catch (error) {}
     }
   }
