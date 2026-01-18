@@ -173,7 +173,7 @@ def _run_book_merging(volume_folder: Path):
         "collections": books[0].metadata["collections"] if len(books) > 0 and "collections" in books[0].metadata else [],
         "creators": [dict(t) for t in list({tuple(sorted(creator.items())) for book in books for creator in book.metadata["creators"]})],
         "contributors": [dict(t) for t in list({tuple(sorted(contributor.items())) for book in books for contributor in book.metadata["contributors"]})],
-        "description": "\n\n".join(set([book.metadata["description"] for book in books if "description" in book.metadata])),
+        "description": "\n\n".join(set([book.metadata["description"] for book in books if "description" in book.metadata and book.metadata["description"] is not None])),
         "lang": books[0].metadata["lang"] if len(books) > 0 and "lang" in books[0].metadata else "en",
         "rights": books[0].metadata["rights"] if len(books) > 0 and "rights" in books[0].metadata else "",
         "subjects": list(set([subject for book in books for subject in book.metadata.get("subjects", [])]))
