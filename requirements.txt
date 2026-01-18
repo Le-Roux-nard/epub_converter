@@ -6,3 +6,4 @@ flask
 flask-cors
 python-dotenv
 mkepub@git+https://github.com/Le-Roux-nard/mkepub@epub_parsing
+beautifulsoup4
