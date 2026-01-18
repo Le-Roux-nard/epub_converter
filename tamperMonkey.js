@@ -16,6 +16,10 @@ const backupServerURL = 'https://fuck-victorian-novel-house.lerouxnard.fr/'
 
 
 function waitForElement (selector, timeout = 10_000) {
+
+  let e = document.querySelector(selector)
+  if(!!e) return e
+
   return new Promise((res, rej) => {
     const observer = new MutationObserver((mutations, observer) => {
       const element = document.querySelector(selector)
