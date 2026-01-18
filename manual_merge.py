@@ -37,6 +37,9 @@ def merge_dir(dir_path: Path):
         "subjects": list(set([subject for book in books for subject in book.metadata.get("subjects", [])]))
     }
 
+    if len(merged_metadata["collections"]) > 0 and "number" in merged_metadata["collections"][0]:
+        merged_metadata["collections"][0]["number"] = int(merged_metadata["collections"][0]["number"])
+
     novel_folder = os.path.realpath(os.path.join(dir_path, ".."))
 
     merge_result = Book.merge(merged_metadata, *books)
