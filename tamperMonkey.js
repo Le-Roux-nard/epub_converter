@@ -309,7 +309,7 @@ if (window.top != window.self) {
           }
         ],
         subjects: [],
-        description: volumeMetadata.synopsys,
+        description: volumeMetadata.synopsys ?? novelMetadata.synopsys,
         cover: volumeMetadata.cover,
         volumeName: volumeMetadata.volumeName,
         chapters: volumeMetadata.chapters
