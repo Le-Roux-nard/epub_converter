@@ -450,7 +450,7 @@ def requestNovelDump(novel_name: str, volume_name: str):
         return abort(406)
 
     if f"{novel_name}/{volume_name}" in locks:
-        return "", 102  # Processing
+        return "", 423  # Processing
     else:
         locks[f"{novel_name}/{volume_name}"] = True
 
