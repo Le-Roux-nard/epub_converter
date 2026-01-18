@@ -286,7 +286,7 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
         for collection in chapter_metadata["collections"]:
             collection_index = str(
                 chapter_index + 1).zfill(series_zfill[collection["name"]])
-            collection["number"] = f"{collection["number"]}.{collection_index}"
+            collection["number"] = f"{collection['number']}.{collection_index}"
 
         epubChapter = Book(**chapter_metadata)
         epubChapter.set_cover(cover_content)
