@@ -5,7 +5,9 @@ from pathlib import Path
 
 
 def merge_dir(dir_path: Path):
-    """Fonction appelÃ©e par le Timer pour lister le dossier et appeler le callback (si fourni)."""
+    """Fonction appelée par le Timer pour lister le dossier et appeler le callback (si fourni)."""
+    dir_path = Path(dir_path)
+
     try:
         nodes = os.listdir(dir_path)
     except Exception:
