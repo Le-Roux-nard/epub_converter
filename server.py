@@ -246,7 +246,6 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
                                  "html.parser")  # ou "html.parser"
             html_link_node = soup.find("link", {"rel": "stylesheet"})
             if not html_link_node or "href" not in html_link_node.attrs:
-                print(chapter_obfuscated_html[:500])
                 raise Exception(
                     f"Impossible de trouver le lien CSS dans le HTML pour {unquote(chapter_url)}")
             css_url = html_link_node["href"]
