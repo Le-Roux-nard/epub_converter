@@ -201,7 +201,7 @@ def _run_book_merging(volume_folder: Path):
 
 
 def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelMetadata, target_folder: Path):
-
+    global locks
     try:
         series_zfill = {}
         thread_session = requests.Session()
@@ -247,7 +247,7 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
             html_link_node = soup.find("link", {"rel": "stylesheet"})
             if not html_link_node or "href" not in html_link_node.attrs:
                 raise Exception(
-                    f"Impossible de trouver le lien CSS dans le HTML pour {unquote(chapter_url)}")
+                    f"Impossible de trouver le lien CSS dans le HTML pour {chapter_url}")
             css_url = html_link_node["href"]
 
             css_content = thread_session.get(css_url).content.decode()
@@ -448,6 +448,7 @@ def buildEpub():
 
 @app.post('/<path:novel_name>/<path:volume_name>')
 def requestNovelDump(novel_name: str, volume_name: str):
+    global locks
     metadata: DumpRequestMetadata = request.get_json(force=True)
 
     if not metadata:
@@ -465,7 +466,6 @@ def requestNovelDump(novel_name: str, volume_name: str):
     missing_chapters_list: List[str] = []
     for chapter in metadata["chapters"]:
         exploded_chapter = chapter.split("/")
-        exploded_chapter[-1] = unquote(exploded_chapter[-1])
         # Sanitize path by removing slashes and dots
         exploded_chapter[-1] = re.sub(
             r'\/|(?<=[^.])\.{2}(?=[^.])|\.{4,}', '', exploded_chapter[-1])
