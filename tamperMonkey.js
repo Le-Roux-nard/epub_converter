@@ -6,9 +6,7 @@
 // @author       You
 // @match        https://world-novel.fr/oeuvres/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=victorian-novel-house.fr
-// @grant        GM.getValue
-// @grant        GM.setValue
-// @grant        GM.listValues
+// @run-at context-menu
 // ==/UserScript==
 
 const corsBypassProxy = 'https://fuck-cors.lerouxnard.workers.dev'
