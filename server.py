@@ -284,10 +284,12 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
 
             cleaned_chapter_html = line_break_style + cleaned_chapter_html
 
+            chapter_number = int(re.findall(r"(?<=Chapitre )(\d+)", chapter_metadata["title"])[0]) if re.findall(r"(?<=Chapitre )(\d+)", chapter_metadata["title"]) else 0
+            print(type(chapter_number), chapter_number)
             for collection in chapter_metadata["collections"]:
-                collection_index = str(
-                    chapter_index + 1).zfill(series_zfill[collection["name"]])
+                collection_index = str(chapter_number).zfill(series_zfill[collection["name"]])
                 collection["number"] = f"{collection['number']}.{collection_index}"
+            print(chapter_metadata["collections"])
 
             epubChapter = Book(**chapter_metadata)
             epubChapter.set_cover(cover_content)
