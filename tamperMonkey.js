@@ -6,6 +6,8 @@
 // @author       You
 // @match        https://world-novel.fr/oeuvres/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=victorian-novel-house.fr
+// @downloadURL  https://github.com/Le-Roux-nard/epub_converter/raw/refs/heads/master/tamperMonkey.js
+// @updateURL    https://github.com/Le-Roux-nard/epub_converter/raw/refs/heads/master/tamperMonkey.js
 // @run-at context-menu
 // ==/UserScript==
 
