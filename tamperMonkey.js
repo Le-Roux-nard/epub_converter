@@ -279,7 +279,7 @@ if (window.top != window.self) {
         ...volume.nextSibling.querySelectorAll('a')
       ].map(
         chapter =>
-          /\/lecture\/(.+?)\/volumes\/(.+?)\/chapitres\/(.+)/.exec(chapter.href).slice(1,4).join("/")
+          /\/lecture\/(.+?)\/volumes\/(.+?)\/chapitres\/(.+)/.exec(chapter.getAttribute("href")).slice(1,4).join("/")
           //`${novelMetadata.collection.id}/${volume.innerText}/${chapter.href.split('/').at(-1)}`
       )
       volume.click()
