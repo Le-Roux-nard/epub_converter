@@ -1,3 +1,4 @@
 result/
 *.env
 !.env.exemple
+library/
