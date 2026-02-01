@@ -163,6 +163,35 @@ async function getVolumeMetada (novelMetadata, volumeName) {
   }
 }
 
+async function get_firebase_app_check_token () {
+  return new Promise((resolve, reject) => {
+    try {
+      const request = indexedDB.open('firebase-app-check-database')
+
+      request.onsuccess = function (event) {
+        const db = event.target.result
+        console.log('Bases disponibles:', db.objectStoreNames)
+
+        // Lire un object store
+        const transaction = db.transaction(
+          ['firebase-app-check-store'],
+          'readonly'
+        )
+        const store = transaction.objectStore('firebase-app-check-store')
+        const getAllRequest = store.getAll()
+
+        getAllRequest.onsuccess = function () {
+          //console.log('Données récupérées:', getAllRequest.result);
+          const firebase_app_check_token = getAllRequest.result[0].value.token
+          resolve(firebase_app_check_token)
+        }
+      }
+    } catch (error) {
+      reject(error)
+    }
+  })
+}
+
 /* ------------ Debug overlay (affichée sur la page, sans alertes additionnelles) ------------- */
 function createDebugOverlay () {
   try {
@@ -278,7 +307,7 @@ if (window.top != window.self) {
       ].map(
         chapter =>
           /\/lecture\/(.+?)\/volumes\/(.+?)\/chapitres\/(.+)/.exec(chapter.getAttribute("href")).slice(1,4).join("/")
-          //`${novelMetadata.collection.id}/${volume.innerText}/${chapter.href.split('/').at(-1)}`
+        //`${novelMetadata.collection.id}/${volume.innerText}/${chapter.href.split('/').at(-1)}`
       )
       volume.click()
       localVolumesMetadata[volume.innerText] = volumeMetadata
@@ -317,7 +346,10 @@ if (window.top != window.self) {
           {
             method: 'POST',
             'Content-Type': 'application/json',
-            body: JSON.stringify(metadata)
+            body: JSON.stringify(metadata),
+            headers: {
+              'X-Firebase-AppCheck': await get_firebase_app_check_token()
+            }
           }
         )
 
