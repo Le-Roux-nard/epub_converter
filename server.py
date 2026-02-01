@@ -198,7 +198,7 @@ def _run_book_merging(volume_folder: Path):
         novel_folder, f"{merged_metadata['title']}.epub"), with_visible_toc=True, with_cover_as_first_page=True)
 
 
-def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelMetadata, target_folder: Path):
+def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelMetadata, target_folder: Path, firebase_app_check_token: str = ""):
     global locks
     try:
         series_zfill = {}
@@ -206,7 +206,9 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
         thread_session.max_redirects = 5
         thread_session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0",
-            "Referer": "https://world-novel.fr/"
+            "Origin": "https://world-novel.fr",
+            "Referer": "https://world-novel.fr/",
+            "X-Firebase-AppCheck": firebase_app_check_token
         })
         for collection in metadata["collections"]:
             series_zfill[collection["name"]] = int(
@@ -235,12 +237,9 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
             chapter_metadata["title"] = unquote(
                 chapter_url.split("/")[-1]).strip()
 
-            chapter_obfuscated_html = thread_session.get(f"{root_url}&path={chapter_url}", headers={
-                "Origin": "https://world-novel.fr",
-                "X-Firebase-AppCheck": "eyJraWQiOiJ2ckU4dWciLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxOjYxMTA4Nzk4MzcwOndlYjo2N2E2MDYwOTQ0YjRlYWY4ZWIyOGZiIiwiYXVkIjpbInByb2plY3RzLzYxMTA4Nzk4MzcwIiwicHJvamVjdHMvdmljdG9yaWFuLW5vdmVsLWhvdXNlIl0sInByb3ZpZGVyIjoicmVjYXB0Y2hhX3YzIiwiaXNzIjoiaHR0cHM6Ly9maXJlYmFzZWFwcGNoZWNrLmdvb2dsZWFwaXMuY29tLzYxMTA4Nzk4MzcwIiwiZXhwIjoxNzY5Mjc4NTA4LCJpYXQiOjE3Njg2NzM3MDgsImp0aSI6ImY1OE5KVnFyMzhDR1F0TnVYTW8tWENXQUZnUG9BUnRLUlFjdlVMNll6eDQifQ.Mf8IUGoAiTjF5PgOvi14-hykhBVfHzCk7lPNCWuW7Y10CYrPA88KHp6c0aVsg7GygJx0rXDLCTr3lpM7Gqbu6iF_yAWa0vHJc7pjUPmSol_Xe8swP5WgMDDCIUbL339tLIzbGdu6mZeWI7p2XPqsZ13_WiSHX3QpGhYjivT-Z84YICZAhubzgM-bRj5cTYnf1dmtU43vdRsR1-6p1saiaGaep_sZQXpJcDPaaienqvfZ7uG34-Gsjk6nngbQ_m7V5jU_G3HhqIv854w4jTZ6oYVn8MLTmbTOtcB31P9zaEE_XDNco9aJcdVb_aEclDxVrFQ5sCr3wJHjtnscgE3VZgtBBNKHFMxzBByJoGfi99MB28oGrQ6tzgNVD0NI_laezvX0zpkDCeE_ApHZOIzHRFlbK6YQm3xKlb7DVAKYL0DeabxNMq1SDMDx_DHQyyTqSLq0Jy3XZOpBZ8TKqyr8K4SCCLEswHOBCz0MeXKx5sGlQHDfxbLpzPjGev-cKaxr"
-            }, timeout=60).content.decode()
+            chapter_obfuscated_html = thread_session.get(f"{root_url}&path={chapter_url}", timeout=60).content.decode()
 
-            soup = BeautifulSoup(chapter_obfuscated_html,"html.parser")
+            soup = BeautifulSoup(chapter_obfuscated_html, "html.parser")
             html_link_node = soup.find("link", {"rel": "stylesheet"})
             if not html_link_node or "href" not in html_link_node.attrs:
                 raise Exception(
@@ -483,8 +482,11 @@ def requestNovelDump(novel_name: str, volume_name: str):
 
     metadata["chapters"] = missing_chapters_list
 
+    firebase_app_check_token = request.headers.get("X-Firebase-AppCheck", "")
+    print(firebase_app_check_token)
+
     threading.Thread(target=dumpEpubFromVolumeMetadata, args=(
-        novel_name, volume_name, metadata, target_folder)).start()
+        novel_name, volume_name, metadata, target_folder, firebase_app_check_token)).start()
 
     return missing_chapters_list, status
 
