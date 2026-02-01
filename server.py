@@ -500,7 +500,6 @@ def requestNovelDump(novel_name: str, volume_name: str):
     metadata["chapters"] = missing_chapters_list
 
     firebase_app_check_token = request.headers.get("X-Firebase-AppCheck", "")
-    print(firebase_app_check_token)
 
     threading.Thread(target=dumpEpubFromVolumeMetadata, args=(
         novel_name, volume_name, metadata, target_folder, firebase_app_check_token)).start()
