@@ -8,6 +8,7 @@ import threading
 import re
 import math
 import copy
+import random
 from werkzeug.utils import secure_filename
 from flask import Flask, request, send_from_directory, abort, send_file, render_template
 from flask_cors import CORS
@@ -72,6 +73,21 @@ max-height: 80%;
 object-fit: contain;
 }
 """
+
+PROXY_API_URL = os.environ.get("PROXY_API_URL", None)
+PROXY_API_AUTHORIZATION = os.environ.get("PROXY_API_AUTHORIZATION", None)
+proxy_list = []
+try:
+    if PROXY_API_URL is not None:
+        proxy_list_api_call = response = requests.get( PROXY_API_URL, headers={"Authorization": PROXY_API_AUTHORIZATION}).json()
+        if proxy_list_api_call is None or proxy_list_api_call["count"] < 1:
+            raise Exception("No proxies available")
+        else:
+            proxy_list = list(map(lambda proxy: f"{proxy['username']}:{proxy['password']}@{proxy['proxy_address']}:{proxy['port']}", response.get("results", [])))
+    else:
+        print("No proxy API URL provided, proceeding without proxies.")
+except Exception as e:
+    print(f"Could not fetch proxy list: {e}")
 
 
 class NovelMetadata:
@@ -203,6 +219,7 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
     try:
         series_zfill = {}
         thread_session = requests.Session()
+        thread_session.proxies = random.choice(proxy_list) if len(proxy_list) > 0 else {}
         thread_session.max_redirects = 5
         thread_session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/112.0",
