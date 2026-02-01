@@ -107,7 +107,7 @@ async function getVolumeMetada (novelMetadata, volumeName) {
     )
   ).then(r => r.json())
 
-  if (bookSearchResults.totalItems === 0) {
+  if (!bookSearchResults.totalItems || bookSearchResults.totalItems === 0) {
     //No match found
     return {
       ...novelMetadataCopy,
