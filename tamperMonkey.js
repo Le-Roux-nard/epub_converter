@@ -48,8 +48,7 @@ async function getNovelMetadata () {
   )
   const coverElement = document.querySelector('section div img')
 
-  return [
-    {
+  return {
       title: novelTitleNode.innerText,
       author: authorSpan.innerText.split(':').at(-1).trim(),
       collection: {
@@ -57,10 +56,9 @@ async function getNovelMetadata () {
         name: novelTitleNode.innerText
       },
       translator: translatorSpan.innerText.split(':').at(-1).trim(),
-      synopsys: synopsisParagraph.innerText
-    },
-    coverElement.src
-  ]
+      synopsys: synopsisParagraph.innerText,
+      cover:coverElement.src
+  }
 }
 
 async function getVolumeMetada (novelMetadata, volumeName) {
@@ -287,7 +285,7 @@ if (window.top != window.self) {
     document.querySelector('input[type=text]').nextSibling.nextSibling.click() //reverse chapter order from oldest to newest
 
     const volumes = [...document.querySelectorAll('div > h3')].reverse()
-    const [novelMetadata, coverBlobUrl] = await getNovelMetadata()
+    const novelMetadata = await getNovelMetadata()
     const localVolumesMetadata = {}
 
     for await (const volume of volumes) {
@@ -299,9 +297,6 @@ if (window.top != window.self) {
         volume.innerText
       )
 
-      if (!volumeMetadata.cover) {
-        volumeMetadata.cover = coverBlobUrl
-      }
       volumeMetadata.chapters = [
         ...volume.nextSibling.querySelectorAll('a')
       ].map(
