@@ -14,11 +14,9 @@
 const corsBypassProxy = 'https://fuck-cors.lerouxnard.workers.dev'
 const backupServerURL = 'https://fuck-victorian-novel-house.lerouxnard.fr/'
 
-
 function waitForElement (selector, timeout = 10_000) {
-
   let e = document.querySelector(selector)
-  if(!!e) return e
+  if (!!e) return e
 
   return new Promise((res, rej) => {
     const observer = new MutationObserver((mutations, observer) => {
@@ -40,7 +38,6 @@ function waitForElement (selector, timeout = 10_000) {
     }, timeout)
   })
 }
-
 
 async function getNovelMetadata () {
   const novelTitleNode = document.querySelector('h2')
@@ -268,7 +265,6 @@ if (window.top != window.self) {
       volume.click()
       await waitForElement('div > h3 + ul a')
 
-
       const volumeMetadata = await getVolumeMetada(
         novelMetadata,
         volume.innerText
@@ -330,7 +326,7 @@ if (window.top != window.self) {
           debugLog(`Volume "${volume.innerText}" processed`)
           debugLog(`New chapters: ${new_chapters.length}`)
           if (new_chapters.length <= 10) {
-            debugLog("\n" + new_chapters.join('\n'))
+            debugLog('\n' + new_chapters.join('\n'))
           }
         }
       } catch (error) {}
