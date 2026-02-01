@@ -31,48 +31,46 @@ image_data_url_regexp = re.compile(
 EPUB_ROOT_FOLDER = Path(os.environ.get("EPUB_ROOT_FOLDER", "./results/"))
 locks = {}
 line_break_style = """
-<style>
-  p {
-		margin: 13px 0;
-		/* display:block; */
-	}
+p {
+    margin: 13px 0;
+    /* display:block; */
+}
 
-	body, div, img {
-		padding: 0pt;
-		margin: 0pt;
-		line-height: 125%;
-	}
+body, div, img {
+    padding: 0pt;
+    margin: 0pt;
+    line-height: 125%;
+}
 
-	body {
-		text-align: left;
-	}
+body {
+    text-align: left;
+}
 
-	.line-break {
-		display: block;
-		width: 100%;
-		height: 1em;
-		position:relative
-	}
+.line-break {
+    display: block;
+    width: 100%;
+    height: 1em;
+    position:relative
+}
 
-	.line-break::after {
-		position: absolute;
-		font-style:italic;
-		content: "* * *";
-		left: 50%;
-		transform: translateX(-75%);
-	}
+.line-break::after {
+    position: absolute;
+    font-style:italic;
+    content: "* * *";
+    left: 50%;
+    transform: translateX(-75%);
+}
 
 
-	img {
-	display: block;
-	margin-left: auto;
-	margin-right: auto;
-	margin-bottom: 1em;
-	max-width: 75%;
-	max-height: 80%;
-	object-fit: contain;
-	}
-</style>
+img {
+display: block;
+margin-left: auto;
+margin-right: auto;
+margin-bottom: 1em;
+max-width: 75%;
+max-height: 80%;
+object-fit: contain;
+}
 """
 
 
@@ -282,8 +280,6 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
             cleaned_chapter_html = re.sub(
                 r'<span class=".{8}">(.+?)<\/span>', r'\g<1>', deobfuscated_html)
 
-            cleaned_chapter_html = line_break_style + cleaned_chapter_html
-
             chapter_number = int(re.findall(r"(?<=Chapitre )(\d+)", chapter_metadata["title"])[0]) if re.findall(r"(?<=Chapitre )(\d+)", chapter_metadata["title"]) else 0
             for collection in chapter_metadata["collections"]:
                 collection_index = str(chapter_number).zfill(series_zfill[collection["name"]])
@@ -291,6 +287,7 @@ def dumpEpubFromVolumeMetadata(novelName: str, volumeName: str, metadata: NovelM
 
             epubChapter = Book(**chapter_metadata)
             epubChapter.set_cover(cover_content)
+            epubChapter.add_stylesheet(data=line_break_style)
             epubChapter.add_page(
                 chapter_metadata["title"], cleaned_chapter_html)
             file_path = target_folder / f"{chapter_metadata['title']}.epub"
