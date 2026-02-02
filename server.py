@@ -84,6 +84,7 @@ try:
             raise Exception("No proxies available")
         else:
             proxy_list = list(map(lambda proxy: f"{proxy['username']}:{proxy['password']}@{proxy['proxy_address']}:{proxy['port']}", response.get("results", [])))
+            print(f"Using {len(proxy_list)} prox{'ies' if len(proxy_list) > 1 else 'y'}")
     else:
         print("No proxy API URL provided, proceeding without proxies.")
 except Exception as e:
